@@ -9,23 +9,25 @@ class LimitFileUploadSizeMiddleware(BaseHTTPMiddleware):
         self.max_upload_size = max_upload_size_in_megabytes * 1024 * 1024
 
     async def dispatch(self, request: Request, call_next: callable):
-        content_type = request.headers.get("content-type")
-        if content_type and "application/pdf" not in content_type:
-            raise HTTPException(
-                status_code=415,
-                detail="Only PDF files are allowed.",
-            )
-        else:
-            content_length = request.headers.get("content-length")
-            if content_length and int(content_length) > self.max_upload_size:
+        if request.method in {"POST", "PUT"}:
+            content_type = request.headers.get("content-type")
+            if not content_type or "application/pdf" not in content_type:
                 raise HTTPException(
-                    status_code=413,
-                    detail=f"File size exceeds limit of {self.max_upload_size}.",
+                    status_code=415,
+                    detail="Only PDF files are allowed.",
                 )
-            else:
+
+            content_length = request.headers.get("content-length")
+            if not content_length:
                 raise HTTPException(
                     status_code=411,
-                    detail="content-Length header is required for file uploads.",
+                    detail="Content-Length header is required for file uploads.",
+                )
+
+            if int(content_length) > self.max_upload_size:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File size exceeds limit of {self.max_upload_size} bytes.",
                 )
 
         return await call_next(request)

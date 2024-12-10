@@ -1,5 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from size_middleware import LimitFileUploadSizeMiddleware
+from models import DensairInput
 
 app = FastAPI()
 
@@ -12,15 +13,18 @@ app.add_middleware(
 
 
 @app.post("/")
-async def densair(file: UploadFile = File(...)):
+async def densair(start_page: int, end_page: int, file: UploadFile = File(...)):
+    range: DensairInput = DensairInput(start_page=start_page, end_page=end_page)
     contents: bytes = await file.read()
-    size = len(contents) / (1024 * 1024)
+    size: float = len(contents) / (1024 * 1024)
+
     if size > MAX_FILE_SIZE_MB:
         raise HTTPException(
             status_code=413,
             detail=f"File size exceeds the limit of {MAX_FILE_SIZE_MB} MB.",
         )
-    return {"filename": file.filename, "size_in_mb": round(size, 2)}
+
+    return {"filename": file.filename, "size": round(size, 2)}
 
 
 if __name__ == "__main__":
