@@ -1,2 +1,3 @@
 # densair
-Condense PDF material to presentable PPTX files.
+
+Condense Textbook PDF material to presentable PPTX files.
