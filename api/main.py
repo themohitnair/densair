@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from models import PageRangeInput, EstimationResult
 from extract import extract, count_pages, count_tokens, estimate_price
 from config import logger, host, price_per_token
+from condense import get_text_summary
+from convert import to_html
 
 app = FastAPI()
 
@@ -70,8 +72,13 @@ async def convert(
     logger.info("Input validated.")
 
     text = await extract(content, page_range)
+    summary = get_text_summary(text)
+    html = to_html(summary)
 
-    return {"text": text}
+    with open("output.html", "w", encoding="utf-8") as file:
+        file.write(html)
+
+    return {"summary": html}
 
 
 if __name__ == "__main__":
