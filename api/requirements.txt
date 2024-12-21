@@ -26,6 +26,7 @@ pydantic-core==2.27.2
 pygments==2.18.0
 pymupdf==1.25.1
 python-dotenv==1.0.1
+python-multipart==0.0.20
 python-pptx==1.0.2
 regex==2024.11.6
 requests==2.32.3
