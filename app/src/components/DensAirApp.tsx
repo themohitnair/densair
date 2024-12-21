@@ -7,11 +7,17 @@ import { EstimationResult } from './EstimationResult'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
+type EstimationResultType = {
+    price: number;
+    tokens: number;
+    stripeLink: string;
+};
+
 export function DensAirApp() {
     const [file, setFile] = useState<File | null>(null)
     const [startPage, setStartPage] = useState('')
     const [endPage, setEndPage] = useState('')
-    const [estimationResult, setEstimationResult] = useState<any | null>(null)
+    const [estimationResult, setEstimationResult] = useState<EstimationResultType | null>(null);
 
     const handleEstimate = async () => {
         // Placeholder for API call
