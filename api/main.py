@@ -1,15 +1,18 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from models import PDFInput
-from extract import extract
+from models import PageRangeInput, EstimationResult
+from extract import extract, count_pages, count_tokens
 from config import logger
+from dotenv import load_dotenv
+import os
 
 app = FastAPI()
 
-origins = [
-    "http://localhost:3000",
-    "https://densair.vercel.app",
-]
+load_dotenv()
+host = os.getenv("HOST_VERCEL")
+price_per_token = os.getenv("PRICE_PER_TOKEN")
+
+origins = ["http://localhost:3000", host]
 
 
 app.add_middleware(
@@ -21,18 +24,53 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-async def greet():
-    return {"message": "densair greets ya!"}
+@app.post("/estimate", response_class=EstimationResult)
+async def estimate(
+    file: UploadFile = File(...), start_page: int = Form(...), end_page: int = Form(...)
+):
+    logger.info("Reading PDF File.")
+    content = await file.read()
+    logger.info("PDF File read!")
+
+    num_pages = await count_pages(content)
+    try:
+        page_range = PageRangeInput(
+            start_page=start_page, end_page=end_page, num_pages=num_pages
+        )
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+    logger.info("Input validated.")
+
+    text = await extract(content, page_range)
+
+    return EstimationResult(
+        tokens=count_tokens(text), price=price_per_token, link="https://example.com"
+    )
 
 
 @app.post("/convert")
 async def convert(
     file: UploadFile = File(...), start_page: int = Form(...), end_page: int = Form(...)
 ):
-    input = PDFInput(pdf_file=file, start_page=start_page, end_page=end_page)
+    logger.info("Reading PDF File.")
+    content = await file.read()
+    logger.info("PDF File read!")
+
+    num_pages = await count_pages(content)
+    try:
+        page_range = PageRangeInput(
+            start_page=start_page, end_page=end_page, num_pages=num_pages
+        )
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
     logger.info("Input validated.")
-    text = extract(input)
+
+    text = await extract(content, page_range)
+
     return {"text": text}
 
 

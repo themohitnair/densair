@@ -5,6 +5,7 @@ from config import SYS_PROMPT, logger
 
 load_dotenv()
 api_key = os.getenv("TOGETHER_API_KEY")
+model = os.getenv("MODEL_NAME")
 
 
 def get_text_summary(content: str):
@@ -13,7 +14,7 @@ def get_text_summary(content: str):
 
     try:
         response = client.chat.completions.create(
-            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            model=model,
             messages=[
                 {"role": "system", "content": SYS_PROMPT},
                 {"role": "user", "content": content},
