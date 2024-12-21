@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 host = os.getenv("HOST_VERCEL")
-price_per_token = os.getenv("PRICE_PER_TOKEN")
+price_per_token = float(os.getenv("PRICE_PER_TOKEN"))
 api_key = os.getenv("TOGETHER_API_KEY")
 model = os.getenv("MODEL_NAME")
 

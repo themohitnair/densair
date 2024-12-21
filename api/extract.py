@@ -5,7 +5,7 @@ from config import logger
 import tiktoken
 
 
-async def count_pages(content: bytes):
+async def count_pages(content: bytes) -> int:
     try:
         doc = pymupdf.open(stream=content, filetype="pdf")
         return doc.page_count
@@ -14,7 +14,7 @@ async def count_pages(content: bytes):
         raise HTTPException(status_code=400, detail="Error reading the PDF file.")
 
 
-async def extract(content: bytes, page_range: PageRangeInput):
+async def extract(content: bytes, page_range: PageRangeInput) -> str:
     try:
         doc_stream = pymupdf.open(stream=content, filetype="pdf")
 
@@ -33,10 +33,10 @@ async def extract(content: bytes, page_range: PageRangeInput):
         raise ValueError(f"Error processing PDF: {str(e)}")
 
 
-async def count_tokens(text: str):
+async def count_tokens(text: str) -> int:
     enc = tiktoken.encoding_for_model("gpt-4")
     return len(enc.encode(text))
 
 
-async def estimate_price(token_count: int, price_per_token: int):
+async def estimate_price(token_count: int, price_per_token: int) -> float:
     return token_count * price_per_token

@@ -2,7 +2,7 @@ from together import Together
 from config import SYS_PROMPT, logger, api_key, model
 
 
-def get_text_summary(content: str):
+def get_text_summary(content: str) -> str:
     client = Together(api_key=api_key)
     logger.info("Together AI client loaded with API key.")
 

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from models import PageRangeInput, EstimationResult
-from extract import extract, count_pages, count_tokens
+from extract import extract, count_pages, count_tokens, estimate_price
 from config import logger, host, price_per_token
 
 app = FastAPI()
@@ -19,7 +19,7 @@ app.add_middleware(
 )
 
 
-@app.post("/estimate", response_class=EstimationResult)
+@app.post("/estimate")
 async def estimate(
     file: UploadFile = File(...), start_page: int = Form(...), end_page: int = Form(...)
 ):
@@ -40,8 +40,13 @@ async def estimate(
 
     text = await extract(content, page_range)
 
+    token_count = await count_tokens(text)
+    price = await estimate_price(token_count, price_per_token)
+
     return EstimationResult(
-        tokens=count_tokens(text), price=price_per_token, link="https://example.com"
+        tokens=token_count,
+        price=price,
+        payment_link="https://example.com",
     )
 
 
