@@ -10,7 +10,7 @@ interface EstimationResultProps {
 
 export function EstimationResult({ result }: EstimationResultProps) {
     return (
-        <div className="mt-6 p-4 bg-gray-700 rounded-lg border border-gray-600">
+        <div className="mt-6 p-4 bg-black rounded-lg border border-black">
             <h3 className="text-lg font-semibold mb-2 text-white">Estimation Result</h3>
             <p className="text-sm sm:text-base text-gray-300">Price: ${result.price.toFixed(2)}</p>
             <p className="text-sm sm:text-base text-gray-300">Tokens: {result.tokens}</p>
@@ -24,7 +24,7 @@ export function EstimationResult({ result }: EstimationResultProps) {
                         target="_blank"
                         rel="noopener noreferrer"
                     >
-                        Pay with Stripe
+                        Payment
                     </a>
                 </Button>
             </div>
