@@ -4,7 +4,7 @@ interface EstimationResultProps {
     result: {
         price: number
         tokens: number
-        stripeLink: string
+        paymentLink: string
     }
 }
 
@@ -20,7 +20,7 @@ export function EstimationResult({ result }: EstimationResultProps) {
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 >
                     <a
-                        href={result.stripeLink}
+                        href={result.paymentLink}
                         target="_blank"
                         rel="noopener noreferrer"
                     >

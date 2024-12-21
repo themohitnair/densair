@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card'
 type EstimationResultType = {
     price: number;
     tokens: number;
-    stripeLink: string;
+    paymentLink: string;
 };
 
 export function DensAirApp() {
@@ -20,13 +20,28 @@ export function DensAirApp() {
     const [estimationResult, setEstimationResult] = useState<EstimationResultType | null>(null);
 
     const handleEstimate = async () => {
-        // Placeholder for API call
-        const result = {
-            price: 10.99,
-            tokens: 5000,
-            stripeLink: 'https://stripe.com/payment/placeholder'
+        if (!file || !startPage || !endPage) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('start_page', startPage);
+        formData.append('end_page', endPage);
+
+        try {
+            const response = await fetch('http://localhost:8000/estimate', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                setEstimationResult(result);
+            } else {
+                console.error('Error fetching estimation:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error making API call:', error);
         }
-        setEstimationResult(result)
     }
 
     return (
