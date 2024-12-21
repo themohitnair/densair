@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from models import PDFInput
 from extract import extract
-
+from config import logger
 
 app = FastAPI()
 
@@ -31,6 +31,7 @@ async def convert(
     file: UploadFile = File(...), start_page: int = Form(...), end_page: int = Form(...)
 ):
     input = PDFInput(pdf_file=file, start_page=start_page, end_page=end_page)
+    logger.info("Input validated.")
     text = extract(input)
     return {"text": text}
 
