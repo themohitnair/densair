@@ -1,5 +1,13 @@
 import textwrap
 import logging
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+host = os.getenv("HOST_VERCEL")
+price_per_token = os.getenv("PRICE_PER_TOKEN")
+api_key = os.getenv("TOGETHER_API_KEY")
+model = os.getenv("MODEL_NAME")
 
 logging.basicConfig(
     level=logging.INFO,

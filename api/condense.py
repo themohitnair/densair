@@ -1,11 +1,5 @@
 from together import Together
-from dotenv import load_dotenv
-import os
-from config import SYS_PROMPT, logger
-
-load_dotenv()
-api_key = os.getenv("TOGETHER_API_KEY")
-model = os.getenv("MODEL_NAME")
+from config import SYS_PROMPT, logger, api_key, model
 
 
 def get_text_summary(content: str):

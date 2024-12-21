@@ -2,15 +2,10 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from models import PageRangeInput, EstimationResult
 from extract import extract, count_pages, count_tokens
-from config import logger
-from dotenv import load_dotenv
-import os
+from config import logger, host, price_per_token
 
 app = FastAPI()
 
-load_dotenv()
-host = os.getenv("HOST_VERCEL")
-price_per_token = os.getenv("PRICE_PER_TOKEN")
 
 origins = ["http://localhost:3000", host]
 
