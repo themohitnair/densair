@@ -1,10 +1,12 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from models import PageRangeInput, EstimationResult
 from extract import extract, count_pages, count_tokens, estimate_price
 from config import logger, host, price_per_token
-from condense import get_text_summary
-from convert import to_html
+from condense import phony_get_text_summary
+from convert import to_presentation
+import tempfile
 
 app = FastAPI()
 
@@ -72,13 +74,19 @@ async def convert(
     logger.info("Input validated.")
 
     text = await extract(content, page_range)
-    summary = get_text_summary(text.strip())
-    html = to_html(summary)
+    summary = phony_get_text_summary(text.strip())  # Phony Summary function
 
-    with open("output.html", "w", encoding="utf-8") as file:
-        file.write(html)
+    presentation = to_presentation(summary)
 
-    return {"summary": html}
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as temp_file:
+        temp_file_path = temp_file.name
+        presentation.save(temp_file_path)
+
+    return FileResponse(
+        temp_file_path,
+        media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        filename="presentation.pptx",
+    )
 
 
 if __name__ == "__main__":
