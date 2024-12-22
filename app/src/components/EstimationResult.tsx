@@ -6,9 +6,11 @@ interface EstimationResultProps {
         tokens: number
         paymentLink: string
     }
+    onDownload: () => void
+    isFileReady: boolean
 }
 
-export function EstimationResult({ result }: EstimationResultProps) {
+export function EstimationResult({ result, onDownload, isFileReady }: EstimationResultProps) {
     return (
         <div className="mt-6 p-4 bg-black rounded-lg border border-black">
             <h3 className="text-lg font-semibold mb-2 text-white">Estimation Result</h3>
@@ -16,16 +18,11 @@ export function EstimationResult({ result }: EstimationResultProps) {
             <p className="text-sm sm:text-base text-gray-300">Tokens: {result.tokens}</p>
             <div className="mt-4">
                 <Button
-                    asChild
+                    onClick={onDownload}
+                    disabled={!isFileReady}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                    <a
-                        href={result.paymentLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        Payment
-                    </a>
+                    Download Presentation
                 </Button>
             </div>
         </div>

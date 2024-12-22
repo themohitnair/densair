@@ -7,6 +7,7 @@ from config import logger, host, price_per_token
 from condense import phony_get_text_summary
 from convert import to_presentation
 import tempfile
+import uuid
 
 app = FastAPI()
 
@@ -78,6 +79,8 @@ async def convert(
 
     presentation = to_presentation(summary)
 
+    filename = f"{uuid.uuid4()}.pptx"
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as temp_file:
         temp_file_path = temp_file.name
         presentation.save(temp_file_path)
@@ -85,7 +88,7 @@ async def convert(
     return FileResponse(
         temp_file_path,
         media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        filename="presentation.pptx",
+        filename=filename,
     )
 
 
