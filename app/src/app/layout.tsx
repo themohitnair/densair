@@ -6,6 +6,13 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata = {
     title: 'DensAIr - Condense Knowledge',
     description: 'Upload PDF, get condensed PPTX',
+    icons: [
+        {
+            rel: 'icon',
+            url: '/densair.svg',
+            type: 'image/svg+xml',
+        },
+    ],
 }
 
 export default function RootLayout({
