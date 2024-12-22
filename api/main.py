@@ -42,7 +42,7 @@ async def estimate(
 
     text = await extract(content, page_range)
 
-    token_count = await count_tokens(text)
+    token_count = await count_tokens(text.strip())
     price = await estimate_price(token_count, price_per_token)
 
     return EstimationResult(
@@ -72,7 +72,7 @@ async def convert(
     logger.info("Input validated.")
 
     text = await extract(content, page_range)
-    summary = get_text_summary(text)
+    summary = get_text_summary(text.strip())
     html = to_html(summary)
 
     with open("output.html", "w", encoding="utf-8") as file:
