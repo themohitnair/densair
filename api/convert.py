@@ -5,6 +5,7 @@ from pptx import Presentation
 import os
 from pptx.util import Pt
 from pptx.enum.text import PP_ALIGN
+from pptx.dml.color import RGBColor
 
 
 def to_html(text: str) -> str:
@@ -52,7 +53,10 @@ def to_presentation(markdown_input: str) -> Presentation:
                 title_shape = slide.shapes.title
                 title_shape.text = title
 
-                title_shape.text_frame.paragraphs[0].font.size = Pt(44)
+                title_shape.text_frame.paragraphs[0].font.size = Pt(48)
+                title_shape.text_frame.paragraphs[0].font.color.rgb = RGBColor(
+                    0, 0, 139
+                )
                 title_shape.text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
 
         else:
@@ -67,7 +71,14 @@ def to_presentation(markdown_input: str) -> Presentation:
             slide = presentation.slides.add_slide(slide_layout)
 
             if title:
-                slide.shapes.title.text = title
+                title_shape = slide.shapes.title
+                title_shape.text = title
+                title_shape.text_frame.paragraphs[0].alignment = PP_ALIGN.LEFT
+
+                title_shape.text_frame.paragraphs[0].font.size = Pt(36)
+                title_shape.text_frame.paragraphs[0].font.color.rgb = RGBColor(
+                    255, 0, 0
+                )
 
             content_placeholder = slide.placeholders[1] if title else slide.shapes[0]
 
@@ -76,7 +87,7 @@ def to_presentation(markdown_input: str) -> Presentation:
                 paragraph.text = point
 
                 paragraph.font.size = Pt(18)
-
+                paragraph.font.color.rgb = RGBColor(0, 0, 0)
                 paragraph.alignment = PP_ALIGN.LEFT
                 paragraph.space_after = Pt(6)
 
