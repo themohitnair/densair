@@ -63,7 +63,7 @@ export function TermsOfServiceDialog({ isOpen, onClose, onAccept, paymentLink }:
 
                     <h2 className="text-lg font-semibold mb-2">5. Limitation of Liability</h2>
                     <p className="mb-4">
-                        - densAIr provides the Services "as is" without warranties, express or implied, including but not
+                        - densAIr provides the Services &quot;as is&quot; without warranties, express or implied, including but not
                         limited to merchantability, fitness for a particular purpose, or non-infringement.<br />
                         - To the fullest extent permitted by law, densAIr and its affiliates, officers, employees, and
                         agents will not be liable for any direct, indirect, incidental, special, consequential, or
