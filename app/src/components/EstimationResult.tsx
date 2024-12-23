@@ -4,13 +4,12 @@ interface EstimationResultProps {
     result: {
         price: number
         tokens: number
-        paymentLink: string
+        payment_link: string
     }
-    onDownload: () => void
-    isFileReady: boolean
+    onPaymentClick: () => void
 }
 
-export function EstimationResult({ result, onDownload, isFileReady }: EstimationResultProps) {
+export function EstimationResult({ result, onPaymentClick }: EstimationResultProps) {
     return (
         <div className="mt-6 p-4 bg-black rounded-lg border border-black">
             <h3 className="text-lg font-semibold mb-2 text-white">Estimation Result</h3>
@@ -18,11 +17,10 @@ export function EstimationResult({ result, onDownload, isFileReady }: Estimation
             <p className="text-sm sm:text-base text-gray-300">Tokens: {result.tokens}</p>
             <div className="mt-4">
                 <Button
-                    onClick={onDownload}
-                    disabled={!isFileReady}
+                    onClick={onPaymentClick}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                    Download Presentation
+                    Proceed to Payment
                 </Button>
             </div>
         </div>

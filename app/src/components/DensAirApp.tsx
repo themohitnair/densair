@@ -4,13 +4,14 @@ import { useState } from 'react'
 import { FileUpload } from './FileUpload'
 import { PageRangeInput } from './PageRangeInput'
 import { EstimationResult } from './EstimationResult'
+import { TermsOfServiceDialog } from './TermsOfServiceDialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
 type EstimationResultType = {
     price: number;
     tokens: number;
-    paymentLink: string;
+    payment_link: string;
 };
 
 export function DensAirApp() {
@@ -18,7 +19,7 @@ export function DensAirApp() {
     const [startPage, setStartPage] = useState('')
     const [endPage, setEndPage] = useState('')
     const [estimationResult, setEstimationResult] = useState<EstimationResultType | null>(null);
-    const [isFileReady, setIsFileReady] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const handleEstimate = async () => {
         if (!file || !startPage || !endPage) return;
@@ -37,7 +38,6 @@ export function DensAirApp() {
             if (response.ok) {
                 const result = await response.json();
                 setEstimationResult(result);
-                setIsFileReady(true); // Set file as ready for download immediately
             } else {
                 console.error('Error fetching estimation:', response.statusText);
             }
@@ -46,36 +46,17 @@ export function DensAirApp() {
         }
     }
 
-    const handleDownload = async () => {
-        if (!file || !isFileReady) return;
+    const handlePaymentClick = () => {
+        setIsDialogOpen(true);
+    }
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('start_page', startPage);
-        formData.append('end_page', endPage);
+    const handleDialogClose = () => {
+        setIsDialogOpen(false);
+    }
 
-        try {
-            const response = await fetch('http://localhost:8000/convert', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = 'presentation.pptx';
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-            } else {
-                console.error('Error converting file:', response.statusText);
-            }
-        } catch (error) {
-            console.error('Error making API call:', error);
-        }
+    const handleTermsAccept = () => {
+        setIsDialogOpen(false);
+        // The actual redirection to the payment link is handled in the TermsOfServiceDialog component
     }
 
     return (
@@ -100,8 +81,15 @@ export function DensAirApp() {
                 {estimationResult && (
                     <EstimationResult 
                         result={estimationResult} 
-                        onDownload={handleDownload}
-                        isFileReady={isFileReady}
+                        onPaymentClick={handlePaymentClick}
+                    />
+                )}
+                {estimationResult && (
+                    <TermsOfServiceDialog
+                        isOpen={isDialogOpen}
+                        onClose={handleDialogClose}
+                        onAccept={handleTermsAccept}
+                        paymentLink={estimationResult.payment_link}
                     />
                 )}
             </CardContent>

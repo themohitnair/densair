@@ -28,7 +28,7 @@ export function FileUpload({ onFileUpload }: FileUploadProps) {
     return (
         <div
             {...getRootProps()}
-            className={`border-2 border-gray-600 rounded-lg p-4 sm:p-8 text-center cursor-pointer transition-colors ${
+            className={`border-2 border-gray-600 border-dashed rounded-lg p-4 sm:p-8 text-center cursor-pointer transition-colors ${
                 isDragActive ? 'border-blue-500 bg-blue-500 bg-opacity-10' : 'hover:border-gray-500'
             }`}
         >
