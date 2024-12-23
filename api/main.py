@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from models import PageRangeInput, EstimationResult
 from extract import extract, count_pages, count_tokens, estimate_price
 from config import logger, host, price_per_token
-from condense import phony_get_text_summary
+from condense import get_text_summary
 from convert import to_presentation
 import tempfile
 import uuid
@@ -75,7 +75,7 @@ async def convert(
     logger.info("Input validated.")
 
     text = await extract(content, page_range)
-    summary = phony_get_text_summary(text.strip())  # Phony Summary function
+    summary = get_text_summary(text.strip())
 
     presentation = to_presentation(summary)
 
