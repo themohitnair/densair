@@ -3,9 +3,10 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from models import PageRangeInput, EstimationResult
 from extract import extract, count_pages, count_tokens, estimate_price
-from config import logger, host, price_per_token
+from config import logger, host, price_per_token, live_key_id_rzp, live_key_secret_rzp
 from condense import get_text_summary
 from convert import to_presentation
+from payment import create_payment_link
 import tempfile
 import uuid
 
@@ -51,7 +52,12 @@ async def estimate(
     return EstimationResult(
         tokens=token_count,
         price=price,
-        payment_link="https://example.com",
+        payment_link=create_payment_link(
+            live_key_id_rzp,
+            live_key_secret_rzp,
+            price,
+            "Densair PDF to PPT condensation",
+        ),
     )
 
 

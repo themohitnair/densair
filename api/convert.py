@@ -90,5 +90,16 @@ def to_presentation(markdown_input: str) -> Presentation:
                 paragraph.font.color.rgb = RGBColor(0, 0, 0)
                 paragraph.alignment = PP_ALIGN.LEFT
                 paragraph.space_after = Pt(6)
+        code_blocks = soup.find_all("code")
+        for code_block in code_blocks:
+            slide_layout = presentation.slide_layouts[5]
+            slide = presentation.slides.add_slide(slide_layout)
+
+            code_text = code_block.text.strip()
+            text_shape = slide.shapes.placeholders[0]
+            text_shape.text = code_text
+            text_shape.text_frame.paragraphs[0].font.size = Pt(18)
+            text_shape.text_frame.paragraphs[0].font.color.rgb = RGBColor(0, 0, 0)
+            text_shape.text_frame.paragraphs[0].alignment = PP_ALIGN.LEFT
 
     return presentation

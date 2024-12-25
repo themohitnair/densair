@@ -24,7 +24,6 @@ def get_text_summary(content: str) -> str:
             and hasattr(response.choices[0].message, "content")
         ):
             summary = response.choices[0].message.content.strip()
-            logger.info(f"Generated summary: {summary[:500]}")
             return summary
 
         logger.error("Invalid response structure or empty choices.")
