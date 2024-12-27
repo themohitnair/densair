@@ -8,7 +8,7 @@ def get_text_summary(content: str) -> str:
     logger.info("Together AI client initialized.")
 
     try:
-        logger.info(f"Generating summary for content: {content[:500]}...")
+        logger.info("Generating summary for content.")
         response = client.chat.completions.create(
             model=model,
             messages=[
