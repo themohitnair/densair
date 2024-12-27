@@ -5,6 +5,7 @@ import { FileUpload } from './FileUpload'
 import { PageRangeInput } from './PageRangeInput'
 import { EstimationResult } from './EstimationResult'
 import { TermsOfServiceDialog } from './TermsOfServiceDialog'
+import { ImportantPoints } from './ImportantPoints'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
@@ -62,6 +63,7 @@ export function DensAirApp() {
     return (
         <Card className="w-full max-w-2xl bg-black border-none shadow-lg">
             <CardContent className="p-4 sm:p-6">
+                <ImportantPoints />
                 <FileUpload onFileUpload={setFile} />
                 <PageRangeInput
                     startPage={startPage}

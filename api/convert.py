@@ -149,7 +149,6 @@ def create_table_slide(
         return
 
     available_width = Inches(9.0)
-    col_width = available_width / cols
     row_height = Inches(0.5)
 
     # Add table to slide
