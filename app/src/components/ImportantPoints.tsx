@@ -16,7 +16,6 @@ export function ImportantPoints() {
                         <li key={index} className="flex items-start">
                             <AlertCircle className="h-5 w-5 mr-2 text-blue-300 flex-shrink-0 mt-0.5" />
                             <div>
-                                <h3 className="font-medium text-blue-200">{point.title}</h3>
                                 <p className="text-sm text-gray-300">{point.description}</p>
                             </div>
                         </li>

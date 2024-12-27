@@ -5,7 +5,7 @@ import { FileUpload } from './FileUpload'
 import { PageRangeInput } from './PageRangeInput'
 import { EstimationResult } from './EstimationResult'
 import { TermsOfServiceDialog } from './TermsOfServiceDialog'
-import { ImportantPoints } from './ImportantPoints'
+import { CollapsibleImportantPoints } from './CollapsibleImportantPoints'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
@@ -61,40 +61,42 @@ export function DensAirApp() {
     }
 
     return (
-        <Card className="w-full max-w-2xl bg-black border-none shadow-lg">
-            <CardContent className="p-4 sm:p-6">
-                <ImportantPoints />
-                <FileUpload onFileUpload={setFile} />
-                <PageRangeInput
-                    startPage={startPage}
-                    endPage={endPage}
-                    onStartPageChange={setStartPage}
-                    onEndPageChange={setEndPage}
-                />
-                <div className="mt-6 flex justify-center">
-                    <Button
-                        onClick={handleEstimate}
-                        disabled={!file || !startPage || !endPage}
-                        className="w-full sm:w-auto bg-blue-500 hover:bg-blue-700 text-white"
-                    >
-                        Estimate
-                    </Button>
-                </div>
-                {estimationResult && (
-                    <EstimationResult 
-                        result={estimationResult} 
-                        onPaymentClick={handlePaymentClick}
+        <>
+            <Card className="w-full max-w-2xl bg-black border-none shadow-lg">
+                <CardContent className="p-4 sm:p-6">
+                    <CollapsibleImportantPoints />
+                    <FileUpload onFileUpload={setFile} />
+                    <PageRangeInput
+                        startPage={startPage}
+                        endPage={endPage}
+                        onStartPageChange={setStartPage}
+                        onEndPageChange={setEndPage}
                     />
-                )}
-                {estimationResult && (
-                    <TermsOfServiceDialog
-                        isOpen={isDialogOpen}
-                        onClose={handleDialogClose}
-                        onAccept={handleTermsAccept}
-                        paymentLink={estimationResult.payment_link}
-                    />
-                )}
-            </CardContent>
-        </Card>
+                    <div className="mt-6 flex justify-center">
+                        <Button
+                            onClick={handleEstimate}
+                            disabled={!file || !startPage || !endPage}
+                            className="w-full sm:w-auto bg-blue-500 hover:bg-blue-700 text-white"
+                        >
+                            Estimate
+                        </Button>
+                    </div>
+                    {estimationResult && (
+                        <EstimationResult 
+                            result={estimationResult} 
+                            onPaymentClick={handlePaymentClick}
+                        />
+                    )}
+                    {estimationResult && (
+                        <TermsOfServiceDialog
+                            isOpen={isDialogOpen}
+                            onClose={handleDialogClose}
+                            onAccept={handleTermsAccept}
+                            paymentLink={estimationResult.payment_link}
+                        />
+                    )}
+                </CardContent>
+            </Card>
+        </>
     )
 }

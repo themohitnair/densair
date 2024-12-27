@@ -1,6 +1,3 @@
-'use client'
-
-import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload } from 'lucide-react'
 
@@ -9,21 +6,17 @@ interface FileUploadProps {
 }
 
 export function FileUpload({ onFileUpload }: FileUploadProps) {
-    const [fileName, setFileName] = useState<string | null>(null)
-
-    const onDrop = useCallback((acceptedFiles: File[]) => {
-        if (acceptedFiles.length > 0) {
-            const file = acceptedFiles[0]
-            setFileName(file.name)
-            onFileUpload(file)
-        }
-    }, [onFileUpload])
-
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        onDrop,
+    const { getRootProps, getInputProps, isDragActive, acceptedFiles } = useDropzone({
         accept: { 'application/pdf': ['.pdf'] },
+        onDrop: (acceptedFiles) => {
+            if (acceptedFiles.length > 0) {
+                onFileUpload(acceptedFiles[0])
+            }
+        },
         multiple: false
     })
+
+    const fileName = acceptedFiles[0]?.name
 
     return (
         <div
