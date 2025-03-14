@@ -1,31 +1,47 @@
-import asyncio
-from services.extract import summarize
+from services.extract import Extractor
 from services.acquire import fetch_arxiv_pdf_bytes
-from config import KEY, PROMPT
+from services.search import TermSearcher
+
+from models import EndResponse, TermAugmenters
+from config import LOG_CONFIG
+
+from fastapi import FastAPI
+import logging.config
 import json
 
-json_string = summarize(
-    KEY, asyncio.run(fetch_arxiv_pdf_bytes("https://arxiv.org/pdf/1706.03762")), PROMPT
-)
+logging.config.dictConfig(LOG_CONFIG)
+logger = logging.getLogger(__name__)
 
-data = json.loads(json_string)
 
-markdown_content = f"""
-# Abstract Summary
-{data.get("abs_explanation", "No abstract summary available.")}
+app = FastAPI()
 
-# Methodology Summary
-{data.get("meth_explanation", "No methodology summary available.")}
 
-# Conclusion Summary
-{data.get("conc_explanation", "No conclusion summary available.")}
+@app.get("/arxiv/{arxiv_id}")
+async def process_arxiv(arxiv_id: str) -> EndResponse:
+    arxiv_link = f"https://arxiv.org/pdf/{arxiv_id}"
+    pdf_bytes = await fetch_arxiv_pdf_bytes(arxiv_link)
 
-# Image Summaries
-{"".join([f"## {image['image_fig_num']}\n{image['image_summary']}\n" for image in data.get("image_summaries", [])])}
+    extractor = Extractor(pdf_bytes)
 
-# Key Terms
-{"".join([f"- **{term}**\n" for term in data.get("key_terms", [])])}
-"""
+    terms_and_summaries = await extractor.sectionwise_explanations()
+    image_summaries = await extractor.image_summaries()
+    overall_summary = await extractor.overall_explanation()
 
-with open("output.md", "w") as file:
-    file.write(markdown_content)
+    return EndResponse(
+        overall_summary=json.loads(overall_summary),
+        terms_and_summaries=json.loads(terms_and_summaries),
+        figure_summaries=json.loads(image_summaries),
+    )
+
+
+@app.get("/search/{term}")
+async def search_term(term: str) -> TermAugmenters:
+    searcher = TermSearcher()
+    augmenters = await searcher.get_augmenters(term)
+    return TermAugmenters(key_term=term, term_augmenters=augmenters)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main:app", host="localhost", port=8000, reload=True)
