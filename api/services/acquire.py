@@ -1,4 +1,4 @@
-from config import LOG_CONFIG
+from config import LOG_CONFIG, LLAMA_KEY
 
 import aiohttp
 import pymupdf
@@ -6,6 +6,7 @@ import logging.config
 from docling.document_converter import DocumentConverter
 from docling.exceptions import ConversionError, OperationNotAllowed
 from docling.datamodel.base_models import ConversionStatus
+from llama_parse import LlamaParse
 
 logging.config.dictConfig(LOG_CONFIG)
 logger = logging.getLogger(__name__)
