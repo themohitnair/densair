@@ -43,3 +43,8 @@ class TermAugmenter(BaseModel):
 class TermAugmenters(BaseModel):
     key_term: str
     term_augmenters: List[TermAugmenter]
+
+
+class VectorMetadata(BaseModel):
+    arxiv_id: str
+    timestamp: str

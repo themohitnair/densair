@@ -1,8 +1,14 @@
+from config import EXA_KEY, LOG_CONFIG
+
 from exa_py import Exa
-from config import EXA_KEY
 from typing import List
 from models import TermAugmenter
+import logging
 import asyncio
+
+
+logging.config.dictConfig(LOG_CONFIG)
+logger = logging.getLogger(__name__)
 
 
 class TermSearcher:
@@ -21,6 +27,8 @@ class TermSearcher:
             use_autoprompt=False,
         )
 
+        logger.info("Search results received.")
+
         results = data.results
         augmenters = []
         for result in results:
@@ -30,4 +38,6 @@ class TermSearcher:
                     url=result.url,
                 )
             )
+
+        logger.info("Augmenters created.")
         return augmenters
