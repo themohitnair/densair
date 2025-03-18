@@ -5,6 +5,7 @@ from models import TermsAndSummaries, FigureSummaries, OverallSummary, EndRespon
 from google import genai
 from google.genai import types
 import logging.config
+import json
 
 logging.config.dictConfig(LOG_CONFIG)
 logger = logging.getLogger(__name__)
@@ -82,7 +83,7 @@ class Extractor:
         figure_summaries = await self.figure_summaries()
 
         return EndResponse(
-            overall_summary=overall_summary,
-            terms_and_summaries=sectionwise_explanations,
-            figure_summaries=figure_summaries,
+            overall_summary=json.loads(overall_summary),
+            terms_and_summaries=json.loads(sectionwise_explanations),
+            figure_summaries=json.loads(figure_summaries),
         )

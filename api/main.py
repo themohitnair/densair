@@ -8,6 +8,7 @@ from models import DocumentProcessStatus
 from config import LOG_CONFIG
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import logging.config
 
 logging.config.dictConfig(LOG_CONFIG)
@@ -15,6 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
@@ -29,7 +38,9 @@ async def process_pdf(arxiv_id: str):
 
     extractor = Extractor(pdf_bytes)
 
-    return extractor.get_all_summaries()
+    summaries = await extractor.get_all_summaries()
+
+    return summaries
 
 
 @app.get("/term/{term}")
@@ -43,7 +54,6 @@ async def get_term_augmenters(term: str):
 
 @app.post("/process/{arxiv_id}/{conv_id}")
 async def process_paper(arxiv_id: str, conv_id: str):
-    """Process a paper once and store its vectors"""
     v = VecService(arxiv_id, conv_id)
 
     if not v.vectors_exist():
@@ -63,7 +73,6 @@ async def process_paper(arxiv_id: str, conv_id: str):
 
 @app.get("/query/{arxiv_id}/{conv_id}")
 async def query_paper(arxiv_id: str, conv_id: str, query: str):
-    """Query against existing vectors"""
     v = VecService(arxiv_id, conv_id)
 
     if not v.vectors_exist():
@@ -74,3 +83,28 @@ async def query_paper(arxiv_id: str, conv_id: str, query: str):
         return {"error": "Failed to retrieve an answer"}
 
     return {"response": response}
+
+
+@app.delete("/deleteconv/{conv_id}")
+async def delete_conversation(conv_id: str):
+    try:
+        v = VecService(arxiv_id="dummy", conv_id=conv_id)
+
+        v.dispose_vectors_by_namespace()
+
+        return {
+            "status": "success",
+            "message": f"Conversation {conv_id} and all associated vectors have been deleted",
+        }
+    except Exception as e:
+        logger.error(f"Error deleting conversation {conv_id}: {e}", exc_info=True)
+        return {
+            "status": "error",
+            "message": f"Failed to delete conversation: {str(e)}",
+        }
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main:app", host="localhost", port=8000, reload=True)
