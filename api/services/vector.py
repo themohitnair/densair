@@ -1,4 +1,10 @@
-from config import TOGETHER_KEY, UPSTASH_URL, UPSTASH_TOKEN, LOG_CONFIG
+from config import (
+    TOGETHER_KEY,
+    UPSTASH_URL,
+    UPSTASH_TOKEN,
+    LOG_CONFIG,
+    RAG_SYSTEM_PROMPT,
+)
 
 from services.acquire import ArxivPDF
 
@@ -61,7 +67,7 @@ class VecService:
         except Exception as e:
             logger.error(f"Error in insert_vectors: {e}", exc_info=True)
 
-    def query_index(self, query: str, top_k: int = 10) -> List[QueryResult] | None:
+    def query_index(self, query: str, top_k: int = 7) -> List[QueryResult] | None:
         try:
             logger.info(f"Starting query for: '{query}' in namespace '{self.conv_id}'.")
 
@@ -79,7 +85,27 @@ class VecService:
             )
             logger.info(f"Query completed. Found {len(results)} results.")
             chunks = [results[i].metadata["chunk"] for i in range(len(results))]
-            return chunks
+
+            context = ""
+            for chunk in chunks:
+                context += chunk + "\n\n"
+
+            logger.info("Context assembled.")
+
+            response = self.client.chat.completions.create(
+                model="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": RAG_SYSTEM_PROMPT,
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Answer the question: {query}. Use only information provided here: {context}",
+                    },
+                ],
+            )
+            return response.choices[0].message.content
         except Exception as e:
             logger.error(f"Error in query_index: {e}", exc_info=True)
             return None
@@ -89,3 +115,11 @@ class VecService:
             self.index.delete_namespace(self.conv_id)
         except Exception as e:
             logger.error(f"Error in dispose_vectors_by_namespace: {e}", exc_info=True)
+
+    def vectors_exist(self) -> bool:
+        try:
+            result = self.index.fetch(ids=[f"{self.conv_id}_0"], namespace=self.conv_id)
+            return len(result) > 0
+        except Exception as e:
+            logger.error(f"Error checking vector existence: {e}", exc_info=True)
+            return False

@@ -1,6 +1,6 @@
 from config import LOG_CONFIG, FIRST_PROMPT, SECOND_PROMPT, THIRD_PROMPT, GEM_KEY
 
-from models import TermsAndSummaries, FigureSummaries, OverallSummary
+from models import TermsAndSummaries, FigureSummaries, OverallSummary, EndResponse
 
 from google import genai
 from google.genai import types
@@ -40,7 +40,7 @@ class Extractor:
         self.logger.info("Sectionwise explanations received.")
         return response.text
 
-    async def image_summaries(self) -> FigureSummaries:
+    async def figure_summaries(self) -> FigureSummaries:
         response = await self.client.aio.models.generate_content(
             model="gemini-2.0-flash-lite",
             contents=[
@@ -75,3 +75,14 @@ class Extractor:
         )
         self.logger.info("Overall explanation received.")
         return response.text
+
+    async def get_all_summaries(self) -> EndResponse:
+        overall_summary = await self.overall_explanation()
+        sectionwise_explanations = await self.sectionwise_explanations()
+        figure_summaries = await self.figure_summaries()
+
+        return EndResponse(
+            overall_summary=overall_summary,
+            terms_and_summaries=sectionwise_explanations,
+            figure_summaries=figure_summaries,
+        )

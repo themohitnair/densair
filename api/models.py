@@ -48,3 +48,8 @@ class TermAugmenters(BaseModel):
 class VectorMetadata(BaseModel):
     arxiv_id: str
     timestamp: str
+
+
+class DocumentProcessStatus(BaseModel):
+    status: str
+    message: str

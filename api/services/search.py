@@ -13,15 +13,16 @@ logger = logging.getLogger(__name__)
 
 
 class TermSearcher:
-    def __init__(self):
+    def __init__(self, term: str):
         self.client = Exa(api_key=EXA_KEY)
+        self.term = term
 
-    async def get_augmenters(self, term: str) -> List[TermAugmenter]:
+    async def get_augmenters(self) -> List[TermAugmenter]:
         exa = Exa(api_key=EXA_KEY)
 
         data = await asyncio.to_thread(
             exa.search_and_contents,
-            f"article or repository simply explaining {term}",
+            f"article or repository simply explaining {self.term}",
             text=True,
             num_results=3,
             type="neural",
