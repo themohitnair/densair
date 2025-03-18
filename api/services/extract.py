@@ -1,7 +1,9 @@
+from config import LOG_CONFIG, FIRST_PROMPT, SECOND_PROMPT, THIRD_PROMPT, GEM_KEY
+
+from models import TermsAndSummaries, FigureSummaries, OverallSummary
+
 from google import genai
 from google.genai import types
-from config import LOG_CONFIG, FIRST_PROMPT, SECOND_PROMPT, THIRD_PROMPT, GEM_KEY
-from models import TermsAndSummaries, FigureSummaries, OverallSummary
 import logging.config
 
 logging.config.dictConfig(LOG_CONFIG)

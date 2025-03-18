@@ -1,8 +1,9 @@
 from config import EXA_KEY, LOG_CONFIG
 
+from models import TermAugmenter
+
 from exa_py import Exa
 from typing import List
-from models import TermAugmenter
 import logging
 import asyncio
 

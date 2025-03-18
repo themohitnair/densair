@@ -7,7 +7,6 @@ from chonkie import RecursiveChunker, RecursiveRules
 from upstash_vector import Index, Vector
 from upstash_vector.types import QueryResult
 from transformers import AutoTokenizer
-from sentence_transformers import SentenceTransformer
 from typing import List
 import logging
 
@@ -23,7 +22,6 @@ class VecService:
         self.pdf = ArxivPDF(arxiv_id)
         self.client = Together(api_key=TOGETHER_KEY)
         self.tokenizer = AutoTokenizer.from_pretrained(self.model)
-        self.embedder = SentenceTransformer(self.model, similarity_fn_name="cosine")
         self.chunker = RecursiveChunker(
             chunk_size=256,
             rules=RecursiveRules(),
