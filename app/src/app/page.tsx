@@ -75,7 +75,7 @@ export default function Home() {
 
   const handleSheetOpenChange = (open: boolean) => {
     setSheetOpen(open);
-    if (open) {
+    if (open && !convId) {  // Ensure a valid convId is used
       setConvId(uuidv4());
     } else if (convId) {
       fetch(`http://localhost:8000/deleteconv/${convId}`, { method: "DELETE" }).catch(console.error);
@@ -124,7 +124,7 @@ export default function Home() {
                 <MessageCircle className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent className="w-[2000px] sm:w-[540px]">
+            <SheetContent className="w-[600px] sm:w-[800px] md:w-[900px] lg:w-[1000px]">
               <SheetHeader>
                 <SheetTitle>Chat about the paper</SheetTitle>
               </SheetHeader>
@@ -135,7 +135,7 @@ export default function Home() {
 
         {loading ? (
           <div className="space-y-6">
-            {["Overall Summary", "Key Terms", "Abstract", "Methods", "Conclusions", "Figures and Tables"].map((title) => (
+            {["Overall Summary", "Key Terms", "Abstract", "Methodology", "Conclusions", "Figures and Tables"].map((title) => (
               <div key={title} className="p-6 border border-gray-200 rounded-lg">
                 <h2 className="text-5xl font-semibold mb-3">{title}</h2>
                 <LoadingAnimation />
@@ -175,7 +175,7 @@ export default function Home() {
             </div>
 
             <div className="p-6">
-              <h2 className="text-5xl font-semibold mb-1">Methods</h2>
+              <h2 className="text-5xl font-semibold mb-1">Methodology</h2>
               <h5 className="text-xl text-gray-400 mb-6">A summary of the methodology employed for research in the paper.</h5>
               <MarkdownRenderer>{summaries.terms_and_summaries.meth_explanation}</MarkdownRenderer>
             </div>
@@ -188,7 +188,7 @@ export default function Home() {
 
             {summaries.table_and_figure_summaries.table_and_figure_summaries.length > 0 && (
               <div className="p-6">
-                <h2 className="text-5xl font-semibold mb-3">Figures and Tables</h2>
+                <h2 className="text-5xl font-semibold mb-6">Figures and Tables</h2>
                 {summaries.table_and_figure_summaries.table_and_figure_summaries.map((fig, index) => (
                   <div key={index} className="mb-4">
                     <h3 className="font-semibold mb-2">{fig.figure_num}</h3>

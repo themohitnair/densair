@@ -90,6 +90,12 @@ async def delete_conversation(conv_id: str):
     try:
         v = VecService(arxiv_id="dummy", conv_id=conv_id)
 
+        if not v.vectors_exist():
+            return {
+                "status": "error",
+                "message": f"Namespace {conv_id} does not exist or was already deleted.",
+            }
+
         v.dispose_vectors_by_namespace()
 
         return {
