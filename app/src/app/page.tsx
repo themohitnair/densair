@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import {
   Sheet,
   SheetContent,
@@ -16,6 +15,8 @@ import { v4 as uuidv4 } from "uuid";
 import { Chat } from "@/components/chat";
 import { LoadingAnimation } from "@/components/loading-animation";
 import MarkdownRenderer from "@/components/markdown-renderer";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 interface FigureSummary {
   figure_num: string;
@@ -43,10 +44,14 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [convId, setConvId] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [augmenters, setAugmenters] = useState<{ title: string; url: string }[]>([]);
+  const [hoveredTerm, setHoveredTerm] = useState<string | null>(null);
+
+  const augmentersRef = useRef<HTMLDivElement>(null); // Ref for scrolling
 
   const handleSearch = async () => {
     if (!arxivId) return;
-    
+
     setLoading(true);
     setSummaries(null);
     try {
@@ -64,9 +69,23 @@ export default function Home() {
     if (open) {
       setConvId(uuidv4());
     } else if (convId) {
-      fetch(`http://localhost:8000/deleteconv/${convId}`, {
-        method: "DELETE",
-      }).catch(console.error);
+      fetch(`http://localhost:8000/deleteconv/${convId}`, { method: "DELETE" }).catch(console.error);
+    }
+  };
+
+  const fetchAugmenters = async (term: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/term/${term}`);
+      const data = await response.json();
+      setAugmenters(data);
+      setHoveredTerm(term); // Store the current hovered term
+
+      // Scroll into view when augmenters are updated
+      setTimeout(() => {
+        augmentersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    } catch (error) {
+      console.error("Error fetching augmenters:", error);
     }
   };
 
@@ -108,45 +127,75 @@ export default function Home() {
         {loading ? (
           <div className="space-y-6">
             {["Overall Summary", "Abstract", "Methods", "Conclusions", "Figures and Tables"].map((title) => (
-              <Card key={title} className="p-6">
+              <div key={title} className="p-6 border border-gray-200 rounded-lg">
                 <h2 className="text-5xl font-semibold mb-3">{title}</h2>
                 <LoadingAnimation />
-              </Card>
+              </div>
             ))}
           </div>
         ) : summaries && (
           <div className="space-y-6">
-            <Card className="p-6">
+            <div className="p-6">
               <h2 className="text-5xl font-semibold mb-3">Overall Summary</h2>
               <MarkdownRenderer>{summaries.overall_summary.summary}</MarkdownRenderer>
-            </Card>
+            </div>
 
-            <Card className="p-6">
+            <div className="p-6">
+              <h2 className="text-5xl font-semibold mb-3">Key Terms</h2>
+              <div className="flex flex-wrap gap-2">
+                {summaries.terms_and_summaries.key_terms.map((term, index) => (
+                  <Tooltip key={index}>
+                    <TooltipTrigger 
+                      className="text-blue-600 cursor-pointer hover:underline"
+                      onClick={() => fetchAugmenters(term)}
+                    >
+                      <Badge className="text-sm font-medium px-2 py-1">{term}</Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>{`Click to see more about "${term}"`}</TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-6">
               <h2 className="text-5xl font-semibold mb-3">Abstract</h2>
               <MarkdownRenderer>{summaries.terms_and_summaries.abs_explanation}</MarkdownRenderer>
-            </Card>
+            </div>
 
-            <Card className="p-6">
+            <div className="p-6">
               <h2 className="text-5xl font-semibold mb-3">Methods</h2>
               <MarkdownRenderer>{summaries.terms_and_summaries.meth_explanation}</MarkdownRenderer>
-            </Card>
+            </div>
 
-            <Card className="p-6">
+            <div className="p-6">
               <h2 className="text-5xl font-semibold mb-3">Conclusions</h2>
               <MarkdownRenderer>{summaries.terms_and_summaries.conc_explanation}</MarkdownRenderer>
-            </Card>
+            </div>
 
-            <Card className="p-6">
+            <div className="p-6">
               <h2 className="text-5xl font-semibold mb-3">Figures and Tables</h2>
-              {summaries.table_and_figure_summaries.table_and_figure_summaries.map(
-                (fig: FigureSummary, index: number) => (
-                  <div key={index} className="mb-4">
-                    <h3 className="font-semibold mb-2">{fig.figure_num}</h3>
-                    <MarkdownRenderer>{fig.figure_summary}</MarkdownRenderer>
-                  </div>
-                )
-              )}
-            </Card>
+              {summaries.table_and_figure_summaries.table_and_figure_summaries.map((fig, index) => (
+                <div key={index} className="mb-4">
+                  <h3 className="font-semibold mb-2">{fig.figure_num}</h3>
+                  <MarkdownRenderer>{fig.figure_summary}</MarkdownRenderer>
+                </div>
+              ))}
+            </div>
+
+            {augmenters.length > 0 && (
+              <div ref={augmentersRef} className="p-6 border border-gray-200 rounded-lg">
+                <h2 className="text-5xl font-semibold mb-3">Related Resources for &quot;{hoveredTerm}&quot;</h2>
+                <ul className="list-disc list-inside">
+                  {augmenters.map((aug, index) => (
+                    <li key={index}>
+                      <a href={aug.url} target="_blank" rel="noopener noreferrer" className="text-black hover:underline">
+                        {aug.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>

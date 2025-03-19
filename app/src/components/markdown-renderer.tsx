@@ -25,7 +25,7 @@ const MarkdownRenderer = ({ children, className }: { children: string; className
             <ol className="list-decimal list-inside my-3 space-y-1">{children}</ol>
           ),
           li: ({ children }) => (
-            <li className="ml-4">{children}</li>
+            <li className="pl-4">{children}</li>
           ),
           strong: ({ children }) => (
             <strong className="font-semibold">{children}</strong>
