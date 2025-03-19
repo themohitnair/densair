@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 
-interface ChatProps {
+export interface ChatProps {
   convId: string;
   arxivId: string;
 }
 
-interface Message {
+export interface Message {
   role: "user" | "assistant";
   content: string;
 }
@@ -62,7 +62,7 @@ export function Chat({ convId, arxivId }: ChatProps) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-full">
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
           {messages.map((message, index) => (
@@ -92,6 +92,7 @@ export function Chat({ convId, arxivId }: ChatProps) {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about the paper..."
             disabled={loading}
+            className="flex-1"
           />
           <Button type="submit" disabled={loading}>
             Send
