@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 export interface ChatProps {
   convId: string;
   arxivId: string;
+  onEndChat: () => void;
 }
 
 export interface Message {
@@ -16,7 +17,7 @@ export interface Message {
   content: string;
 }
 
-export function Chat({ convId, arxivId }: ChatProps) {
+export function Chat({ convId, arxivId, onEndChat }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,6 @@ export function Chat({ convId, arxivId }: ChatProps) {
     setLoading(true);
 
     try {
-      // First ensure the paper is processed
       const processResponse = await fetch(
         `http://localhost:8000/process/${arxivId}/${convId}`,
         { method: "POST" }
@@ -39,7 +39,6 @@ export function Chat({ convId, arxivId }: ChatProps) {
       const processData = await processResponse.json();
 
       if (processData.status === "success") {
-        // Then send the query
         const queryResponse = await fetch(
           `http://localhost:8000/query/${arxivId}/${convId}?query=${encodeURIComponent(
             userMessage
@@ -99,6 +98,10 @@ export function Chat({ convId, arxivId }: ChatProps) {
           </Button>
         </div>
       </form>
+
+      <Button variant="destructive" className="m-4" onClick={onEndChat}>
+        End Chat
+      </Button>
     </div>
   );
 }

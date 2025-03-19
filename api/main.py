@@ -1,3 +1,5 @@
+from config import LOG_CONFIG
+
 from services.acquire import ArxivPDF
 from services.extract import Extractor
 from services.search import TermSearcher
@@ -5,7 +7,6 @@ from services.vector import VecService
 
 from models import DocumentProcessStatus
 
-from config import LOG_CONFIG
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -56,14 +57,13 @@ async def get_term_augmenters(term: str):
 async def process_paper(arxiv_id: str, conv_id: str):
     v = VecService(arxiv_id, conv_id)
 
-    if not v.vectors_exist():
-        vecs = await v.chunk_and_embed_pdf()
-        if vecs is None:
-            return DocumentProcessStatus(
-                status="failure",
-                message="Failed to process the paper",
-            )
-        v.insert_vectors(vecs)
+    vecs = await v.chunk_and_embed_pdf()
+    if vecs is None:
+        return DocumentProcessStatus(
+            status="failure",
+            message="Failed to process the paper",
+        )
+    v.insert_vectors(vecs)
 
     return DocumentProcessStatus(
         status="success",
@@ -91,6 +91,7 @@ async def delete_conversation(conv_id: str):
         v = VecService(arxiv_id="dummy", conv_id=conv_id)
 
         if not v.vectors_exist():
+            logger.warning(f"Namespace {conv_id} does not exist, skipping deletion.")
             return {
                 "status": "error",
                 "message": f"Namespace {conv_id} does not exist or was already deleted.",
@@ -100,7 +101,7 @@ async def delete_conversation(conv_id: str):
 
         return {
             "status": "success",
-            "message": f"Conversation {conv_id} and all associated vectors have been deleted",
+            "message": f"Conversation {conv_id} and all associated vectors have been deleted.",
         }
     except Exception as e:
         logger.error(f"Error deleting conversation {conv_id}: {e}", exc_info=True)

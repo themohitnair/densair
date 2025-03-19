@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -68,15 +68,37 @@ export default function Home() {
     setLoading(false)
   }
 
-  const handleSheetOpenChange = (open: boolean) => {
-    setSheetOpen(open)
-    if (open && !convId) {
-      // Ensure a valid convId is used
-      setConvId(uuidv4())
-    } else if (convId) {
-      fetch(`http://localhost:8000/deleteconv/${convId}`, { method: "DELETE" }).catch(console.error)
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (convId) {
+      timeout = setTimeout(() => {
+        fetch(`http://localhost:8000/deleteconv/${convId}`, { method: "DELETE" })
+          .catch(console.error);
+        setConvId("");
+      }, 10 * 60 * 1000); // 10 minutes
     }
-  }
+    return () => clearTimeout(timeout);
+  }, [convId]);
+
+  const handleSheetOpenChange = (open: boolean) => {
+    if (open) {
+      if (!convId) {
+        setConvId(uuidv4());
+      }
+    } else {
+      endChat();
+    }
+    setSheetOpen(open);
+  };
+
+  const endChat = () => {
+    if (convId) {
+      fetch(`http://localhost:8000/deleteconv/${convId}`, { method: "DELETE" })
+        .catch(console.error);
+      setConvId("");
+    }
+  };
+
 
   const fetchAugmenters = async (term: string) => {
     try {
@@ -117,16 +139,24 @@ export default function Home() {
                 {loading ? "Loading..." : <Search className="h-5 w-5" />}
               </Button>
               <Sheet open={sheetOpen} onOpenChange={handleSheetOpenChange}>
-                <SheetTrigger asChild>
-                  <Button variant="outline">
-                    <MessageCircle className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <SheetTrigger asChild disabled={!arxivId}>
+                        <Button variant="outline" disabled={!arxivId}>
+                          <MessageCircle className="h-5 w-5" />
+                        </Button>
+                      </SheetTrigger>
+                    </span>
+                  </TooltipTrigger>
+                  {!arxivId && <TooltipContent>Please enter an ArXiv ID to start chatting</TooltipContent>}
+                </Tooltip>
+
                 <SheetContent side="right" className="w-[90vw] sm:w-[600px] md:w-[700px] lg:w-[800px] max-w-[800px]">
                   <SheetHeader>
                     <SheetTitle>Chat about the paper</SheetTitle>
                   </SheetHeader>
-                  <Chat convId={convId} arxivId={arxivId} />
+                  <Chat convId={convId} arxivId={arxivId} onEndChat={endChat} />
                 </SheetContent>
               </Sheet>
             </div>

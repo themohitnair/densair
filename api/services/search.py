@@ -22,7 +22,7 @@ class TermSearcher:
 
         data = await asyncio.to_thread(
             exa.search_and_contents,
-            f"article or repository simply explaining {self.term}",
+            f"article, PDF, or PPTX simply explaining {self.term}",
             text=True,
             num_results=3,
             type="neural",

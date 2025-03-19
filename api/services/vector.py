@@ -12,6 +12,7 @@ from together import Together
 from chonkie import RecursiveChunker, RecursiveRules
 from upstash_vector import Index, Vector
 from upstash_vector.types import QueryResult
+from upstash_vector.errors import UpstashError
 from transformers import AutoTokenizer
 from typing import List
 import logging
@@ -112,9 +113,13 @@ class VecService:
 
     def dispose_vectors_by_namespace(self):
         try:
-            self.index.delete_namespace(self.conv_id)
-        except Exception as e:
-            logger.error(f"Error in dispose_vectors_by_namespace: {e}", exc_info=True)
+            existing_namespaces = self.index.list_namespaces()
+            if self.conv_id in existing_namespaces:
+                self.index.delete_namespace(self.conv_id)
+            else:
+                print(f"Namespace {self.conv_id} does not exist. Skipping deletion.")
+        except UpstashError as e:
+            print(f"Error deleting namespace {self.conv_id}: {str(e)}")
 
     def vectors_exist(self) -> bool:
         try:
