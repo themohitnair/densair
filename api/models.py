@@ -9,7 +9,6 @@ class FigType(Enum):
 
 
 class FigureSummary(BaseModel):
-    figure_type: FigType
     figure_num: str
     figure_summary: str
 
