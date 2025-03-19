@@ -31,7 +31,7 @@ class OverallSummary(BaseModel):
 class EndResponse(BaseModel):
     overall_summary: OverallSummary
     terms_and_summaries: TermsAndSummaries
-    figure_summaries: FigureSummaries
+    table_and_figure_summaries: FigureSummaries
 
 
 class TermAugmenter(BaseModel):

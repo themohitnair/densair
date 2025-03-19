@@ -85,5 +85,5 @@ class Extractor:
         return EndResponse(
             overall_summary=json.loads(overall_summary),
             terms_and_summaries=json.loads(sectionwise_explanations),
-            figure_summaries=json.loads(figure_summaries),
+            table_and_figure_summaries=json.loads(figure_summaries),
         )

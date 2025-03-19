@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
@@ -13,9 +12,10 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { MessageCircle, Search } from "lucide-react";
-import ReactMarkdown from "react-markdown";
 import { v4 as uuidv4 } from "uuid";
 import { Chat } from "@/components/chat";
+import { LoadingAnimation } from "@/components/loading-animation";
+import MarkdownRenderer from "@/components/markdown-renderer";
 
 interface FigureSummary {
   figure_num: string;
@@ -32,7 +32,7 @@ interface Summaries {
     meth_explanation: string;
     conc_explanation: string;
   };
-  figure_summaries: {
+  table_and_figure_summaries: {
     table_and_figure_summaries: FigureSummary[];
   };
 }
@@ -48,6 +48,7 @@ export default function Home() {
     if (!arxivId) return;
     
     setLoading(true);
+    setSummaries(null);
     try {
       const response = await fetch(`http://localhost:8000/arxiv/${arxivId}`);
       const data = await response.json();
@@ -63,7 +64,6 @@ export default function Home() {
     if (open) {
       setConvId(uuidv4());
     } else if (convId) {
-      // Delete conversation when closing the sheet
       fetch(`http://localhost:8000/deleteconv/${convId}`, {
         method: "DELETE",
       }).catch(console.error);
@@ -80,79 +80,74 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="max-w-xl mx-auto mb-8">
-          <div className="flex gap-2">
-            <Input
-              placeholder="2307.01000"
-              value={arxivId}
-              onChange={(e) => setArxivId(e.target.value)}
-              className="text-lg"
-            />
-            <Button onClick={handleSearch} disabled={loading}>
-              {loading ? "Loading..." : <Search className="h-5 w-5" />}
-            </Button>
-            <Sheet open={sheetOpen} onOpenChange={handleSheetOpenChange}>
-              <SheetTrigger asChild>
-                <Button variant="outline">
-                  <MessageCircle className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="w-[400px] sm:w-[540px]">
-                <SheetHeader>
-                  <SheetTitle>Chat about the paper</SheetTitle>
-                </SheetHeader>
-                <Chat convId={convId} arxivId={arxivId} />
-              </SheetContent>
-            </Sheet>
-          </div>
+        <div className="max-w-xl mx-auto mb-8 flex gap-2">
+          <Input
+            placeholder="2307.01000"
+            value={arxivId}
+            onChange={(e) => setArxivId(e.target.value)}
+            className="text-lg"
+          />
+          <Button onClick={handleSearch} disabled={loading}>
+            {loading ? "Loading..." : <Search className="h-5 w-5" />}
+          </Button>
+          <Sheet open={sheetOpen} onOpenChange={handleSheetOpenChange}>
+            <SheetTrigger asChild>
+              <Button variant="outline">
+                <MessageCircle className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="w-[400px] sm:w-[540px]">
+              <SheetHeader>
+                <SheetTitle>Chat about the paper</SheetTitle>
+              </SheetHeader>
+              <Chat convId={convId} arxivId={arxivId} />
+            </SheetContent>
+          </Sheet>
         </div>
 
-        {summaries && (
-          <Card className="p-6 max-w-4xl mx-auto">
-            <ScrollArea className="h-[600px] pr-4">
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-semibold mb-3">Overall Summary</h2>
-                  <ReactMarkdown>{summaries.overall_summary.summary}</ReactMarkdown>
-                </div>
+        {loading ? (
+          <div className="space-y-6">
+            {["Overall Summary", "Abstract", "Methods", "Conclusions", "Figures and Tables"].map((title) => (
+              <Card key={title} className="p-6">
+                <h2 className="text-5xl font-semibold mb-3">{title}</h2>
+                <LoadingAnimation />
+              </Card>
+            ))}
+          </div>
+        ) : summaries && (
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h2 className="text-5xl font-semibold mb-3">Overall Summary</h2>
+              <MarkdownRenderer>{summaries.overall_summary.summary}</MarkdownRenderer>
+            </Card>
 
-                <div>
-                  <h2 className="text-2xl font-semibold mb-3">Abstract</h2>
-                  <ReactMarkdown>
-                    {summaries.terms_and_summaries.abs_explanation}
-                  </ReactMarkdown>
-                </div>
+            <Card className="p-6">
+              <h2 className="text-5xl font-semibold mb-3">Abstract</h2>
+              <MarkdownRenderer>{summaries.terms_and_summaries.abs_explanation}</MarkdownRenderer>
+            </Card>
 
-                <div>
-                  <h2 className="text-2xl font-semibold mb-3">Methods</h2>
-                  <ReactMarkdown>
-                    {summaries.terms_and_summaries.meth_explanation}
-                  </ReactMarkdown>
-                </div>
+            <Card className="p-6">
+              <h2 className="text-5xl font-semibold mb-3">Methods</h2>
+              <MarkdownRenderer>{summaries.terms_and_summaries.meth_explanation}</MarkdownRenderer>
+            </Card>
 
-                <div>
-                  <h2 className="text-2xl font-semibold mb-3">Conclusions</h2>
-                  <ReactMarkdown>
-                    {summaries.terms_and_summaries.conc_explanation}
-                  </ReactMarkdown>
-                </div>
+            <Card className="p-6">
+              <h2 className="text-5xl font-semibold mb-3">Conclusions</h2>
+              <MarkdownRenderer>{summaries.terms_and_summaries.conc_explanation}</MarkdownRenderer>
+            </Card>
 
-                <div>
-                  <h2 className="text-2xl font-semibold mb-3">
-                    Figures and Tables
-                  </h2>
-                  {summaries.figure_summaries.table_and_figure_summaries.map(
-                    (fig: FigureSummary, index: number) => (
-                      <div key={index} className="mb-4">
-                        <h3 className="font-semibold mb-2">{fig.figure_num}</h3>
-                        <ReactMarkdown>{fig.figure_summary}</ReactMarkdown>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-            </ScrollArea>
-          </Card>
+            <Card className="p-6">
+              <h2 className="text-5xl font-semibold mb-3">Figures and Tables</h2>
+              {summaries.table_and_figure_summaries.table_and_figure_summaries.map(
+                (fig: FigureSummary, index: number) => (
+                  <div key={index} className="mb-4">
+                    <h3 className="font-semibold mb-2">{fig.figure_num}</h3>
+                    <MarkdownRenderer>{fig.figure_summary}</MarkdownRenderer>
+                  </div>
+                )
+              )}
+            </Card>
+          </div>
         )}
       </div>
     </main>

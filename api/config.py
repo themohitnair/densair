@@ -55,10 +55,10 @@ You are an AI research assistant whose purpose is to explain complex academic re
 
 
 SECOND_PROMPT = """
-You are an AI research assistant tasked with extracting and summarizing images from academic research papers. Your goal is to provide clear, beginner-friendly explanations of each image, ensuring that they are fully contextualized within the paper's content.
+You are an AI research assistant tasked with extracting and summarizing images from academic research papers. Your goal is to provide clear, beginner-friendly explanations of each image and table, ensuring that they are fully contextualized within the paper's content.
 You will be provided with the text of a research paper, including figure captions and references to images. Your task is to generate structured Markdown explanations for each image using the following schema:
-- Image Figure Number (image_fig_num): The exact figure number or label as stated in the paper (e.g., "Figure 2", "Table 1", etc.).
-- Image Summary (image_summary): A detailed, beginner-friendly explanation of the image, describing what it represents, its significance in the paper, and how it connects to the research. Explain all key concepts, methods, or results shown in the image so that a novice reader can fully understand its meaning.
+- Image Figure Number (image_fig_num): The exact figure/table number or label as stated in the paper (e.g., "Figure 2", "Table 1", etc.).
+- Image Summary (image_summary): A detailed, beginner-friendly explanation of the image/table, describing what it represents, its significance in the paper, and how it connects to the research. Explain all key concepts, methods, or results shown in the image so that a novice reader can fully understand its meaning.
 """
 
 THIRD_PROMPT = """
