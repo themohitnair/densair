@@ -38,16 +38,25 @@ interface Summaries {
   };
 }
 
+interface Augmenter {
+  title: string;
+  url: string;
+}
+
+interface AugmenterGroup {
+  term: string;
+  augmenters: Augmenter[];
+}
+
 export default function Home() {
   const [arxivId, setArxivId] = useState("");
   const [summaries, setSummaries] = useState<Summaries | null>(null);
   const [loading, setLoading] = useState(false);
   const [convId, setConvId] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [augmenters, setAugmenters] = useState<{ title: string; url: string }[]>([]);
-  const [hoveredTerm, setHoveredTerm] = useState<string | null>(null);
+  const [augmenterGroups, setAugmenterGroups] = useState<AugmenterGroup[]>([]);
 
-  const augmentersRef = useRef<HTMLDivElement>(null); // Ref for scrolling
+  const augmentersRef = useRef<HTMLDivElement>(null);
 
   const handleSearch = async () => {
     if (!arxivId) return;
@@ -76,11 +85,10 @@ export default function Home() {
   const fetchAugmenters = async (term: string) => {
     try {
       const response = await fetch(`http://localhost:8000/term/${term}`);
-      const data = await response.json();
-      setAugmenters(data);
-      setHoveredTerm(term); // Store the current hovered term
-
-      // Scroll into view when augmenters are updated
+      const data: Augmenter[] = await response.json();
+  
+      setAugmenterGroups((prevGroups) => [...prevGroups, { term, augmenters: data }]);
+  
       setTimeout(() => {
         augmentersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 100);
@@ -88,6 +96,7 @@ export default function Home() {
       console.error("Error fetching augmenters:", error);
     }
   };
+  
 
   return (
     <main className="min-h-screen bg-background">
@@ -115,7 +124,7 @@ export default function Home() {
                 <MessageCircle className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent className="w-[400px] sm:w-[540px]">
+            <SheetContent className="w-[2000px] sm:w-[540px]">
               <SheetHeader>
                 <SheetTitle>Chat about the paper</SheetTitle>
               </SheetHeader>
@@ -126,7 +135,7 @@ export default function Home() {
 
         {loading ? (
           <div className="space-y-6">
-            {["Overall Summary", "Abstract", "Methods", "Conclusions", "Figures and Tables"].map((title) => (
+            {["Overall Summary", "Key Terms", "Abstract", "Methods", "Conclusions", "Figures and Tables"].map((title) => (
               <div key={title} className="p-6 border border-gray-200 rounded-lg">
                 <h2 className="text-5xl font-semibold mb-3">{title}</h2>
                 <LoadingAnimation />
@@ -136,12 +145,14 @@ export default function Home() {
         ) : summaries && (
           <div className="space-y-6">
             <div className="p-6">
-              <h2 className="text-5xl font-semibold mb-3">Overall Summary</h2>
+              <h2 className="text-5xl font-semibold mb-1">Overall Summary</h2>
+              <h5 className="text-xl text-gray-400 mb-6">A summary of the paper&apos;s core</h5>
               <MarkdownRenderer>{summaries.overall_summary.summary}</MarkdownRenderer>
             </div>
 
             <div className="p-6">
-              <h2 className="text-5xl font-semibold mb-3">Key Terms</h2>
+              <h2 className="text-5xl font-semibold mb-1">Key Terms</h2>
+              <h5 className="text-xl text-gray-400 mb-6">The key terms required to understand the paper.</h5>
               <div className="flex flex-wrap gap-2">
                 {summaries.terms_and_summaries.key_terms.map((term, index) => (
                   <Tooltip key={index}>
@@ -158,42 +169,51 @@ export default function Home() {
             </div>
 
             <div className="p-6">
-              <h2 className="text-5xl font-semibold mb-3">Abstract</h2>
+              <h2 className="text-5xl font-semibold mb-1">Abstract</h2>
+              <h5 className="text-xl text-gray-400 mb-6">A summary of the paper&apos;s abstract.</h5>
               <MarkdownRenderer>{summaries.terms_and_summaries.abs_explanation}</MarkdownRenderer>
             </div>
 
             <div className="p-6">
-              <h2 className="text-5xl font-semibold mb-3">Methods</h2>
+              <h2 className="text-5xl font-semibold mb-1">Methods</h2>
+              <h5 className="text-xl text-gray-400 mb-6">A summary of the methodology employed for research in the paper.</h5>
               <MarkdownRenderer>{summaries.terms_and_summaries.meth_explanation}</MarkdownRenderer>
             </div>
 
             <div className="p-6">
-              <h2 className="text-5xl font-semibold mb-3">Conclusions</h2>
+              <h2 className="text-5xl font-semibold mb-1">Conclusions</h2>
+              <h5 className="text-xl text-gray-400 mb-6">A summary of the conclusion of the research done in the paper.</h5>
               <MarkdownRenderer>{summaries.terms_and_summaries.conc_explanation}</MarkdownRenderer>
             </div>
 
-            <div className="p-6">
-              <h2 className="text-5xl font-semibold mb-3">Figures and Tables</h2>
-              {summaries.table_and_figure_summaries.table_and_figure_summaries.map((fig, index) => (
-                <div key={index} className="mb-4">
-                  <h3 className="font-semibold mb-2">{fig.figure_num}</h3>
-                  <MarkdownRenderer>{fig.figure_summary}</MarkdownRenderer>
-                </div>
-              ))}
-            </div>
+            {summaries.table_and_figure_summaries.table_and_figure_summaries.length > 0 && (
+              <div className="p-6">
+                <h2 className="text-5xl font-semibold mb-3">Figures and Tables</h2>
+                {summaries.table_and_figure_summaries.table_and_figure_summaries.map((fig, index) => (
+                  <div key={index} className="mb-4">
+                    <h3 className="font-semibold mb-2">{fig.figure_num}</h3>
+                    <MarkdownRenderer>{fig.figure_summary}</MarkdownRenderer>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            {augmenters.length > 0 && (
-              <div ref={augmentersRef} className="p-6 border border-gray-200 rounded-lg">
-                <h2 className="text-5xl font-semibold mb-3">Related Resources for &quot;{hoveredTerm}&quot;</h2>
-                <ul className="list-disc list-inside">
-                  {augmenters.map((aug, index) => (
-                    <li key={index}>
-                      <a href={aug.url} target="_blank" rel="noopener noreferrer" className="text-black hover:underline">
-                        {aug.title}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+            {augmenterGroups.length > 0 && (
+              <div ref={augmentersRef} className="space-y-6">
+                {augmenterGroups.map((group, index) => (
+                  <div key={index} className="p-6 border border-gray-200 rounded-lg">
+                    <h2 className="text-5xl font-semibold mb-3">Related Resources for {group.term}</h2>
+                    <ul className="list-disc list-inside">
+                      {group.augmenters.map((aug, i) => (
+                        <li key={i}>
+                          <a href={aug.url} target="_blank" rel="noopener noreferrer" className="text-black hover:underline">
+                            {aug.title}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
               </div>
             )}
           </div>
