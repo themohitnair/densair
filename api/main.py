@@ -1,4 +1,4 @@
-from config import LOG_CONFIG
+from config import LOG_CONFIG, API_KEY
 
 from services.acquire import ArxivPDF
 from services.extract import Extractor
@@ -12,12 +12,22 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from starlette.responses import JSONResponse
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Security, HTTPException, Depends
+from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 import logging.config
 
 logging.config.dictConfig(LOG_CONFIG)
 logger = logging.getLogger(__name__)
+
+
+api_key_header = APIKeyHeader(name="api-key", auto_error=True)
+
+
+def get_api_key(api_key: str = Security(api_key_header)):
+    if api_key != API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+    return api_key
 
 
 limiter = Limiter(key_func=get_remote_address)
@@ -27,7 +37,7 @@ app.state.limiter = limiter
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://densair.vercel.app", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,7 +54,9 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 
 @app.get("/arxiv/{arxiv_id}")
 @limiter.limit("5/minute")
-async def process_pdf(arxiv_id: str):
+async def process_pdf(
+    request: Request, arxiv_id: str, api_key: str = Depends(get_api_key)
+):
     pdf = ArxivPDF(arxiv_id)
     pdf_bytes = await pdf.fetch_arxiv_pdf_bytes()
 
@@ -57,7 +69,9 @@ async def process_pdf(arxiv_id: str):
 
 @app.get("/term/{term}")
 @limiter.limit("50/minute")
-async def get_term_augmenters(term: str):
+async def get_term_augmenters(
+    request: Request, term: str, api_key: str = Depends(get_api_key)
+):
     searcher = TermSearcher(term)
 
     augmenters = await searcher.get_augmenters()
@@ -67,7 +81,9 @@ async def get_term_augmenters(term: str):
 
 @app.post("/process/{arxiv_id}/{conv_id}")
 @limiter.limit("2/minute")
-async def process_paper(arxiv_id: str, conv_id: str):
+async def process_paper(
+    request: Request, arxiv_id: str, conv_id: str, api_key: str = Depends(get_api_key)
+):
     v = VecService(arxiv_id, conv_id)
 
     vecs = await v.chunk_and_embed_pdf()
@@ -86,7 +102,13 @@ async def process_paper(arxiv_id: str, conv_id: str):
 
 @app.get("/query/{arxiv_id}/{conv_id}")
 @limiter.limit("100/minute")
-async def query_paper(arxiv_id: str, conv_id: str, query: str):
+async def query_paper(
+    request: Request,
+    arxiv_id: str,
+    conv_id: str,
+    query: str,
+    api_key: str = Depends(get_api_key),
+):
     v = VecService(arxiv_id, conv_id)
 
     if not v.vectors_exist():
@@ -100,7 +122,9 @@ async def query_paper(arxiv_id: str, conv_id: str, query: str):
 
 
 @app.delete("/deleteconv/{conv_id}")
-async def delete_conversation(conv_id: str):
+async def delete_conversation(
+    request: Request, conv_id: str, api_key: str = Depends(get_api_key)
+):
     try:
         v = VecService(arxiv_id="dummy", conv_id=conv_id)
 
