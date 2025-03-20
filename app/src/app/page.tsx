@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -12,6 +12,8 @@ import MarkdownRenderer from "@/components/markdown-renderer"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 import { Header } from "@/components/header"
+import { toast } from "sonner"
+import { LoadingSpinner } from "@/components/loading-spinner"
 
 interface FigureSummary {
   figure_num: string
@@ -50,59 +52,114 @@ export default function Home() {
   const [convId, setConvId] = useState("")
   const [sheetOpen, setSheetOpen] = useState(false)
   const [augmenterGroups, setAugmenterGroups] = useState<AugmenterGroup[]>([])
+  const [processingPaper, setProcessingPaper] = useState(false)
 
   const augmentersRef = useRef<HTMLDivElement>(null)
 
   const handleSearch = async () => {
-    if (!arxivId) return
+    if (!arxivId.trim()) {
+      toast.error("Please enter an ArXiv ID")
+      return
+    }
 
     setLoading(true)
     setSummaries(null)
     try {
       const response = await fetch(`http://localhost:8000/arxiv/${arxivId}`)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch paper: ${response.statusText}`)
+      }
       const data = await response.json()
       setSummaries(data)
     } catch (error) {
       console.error("Error fetching summaries:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to fetch paper details")
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
+  }
+
+  const endChat = useCallback(async () => {
+    if (convId) {
+      try {
+        const response = await fetch(`http://localhost:8000/deleteconv/${convId}`, {
+          method: "DELETE",
+        })
+        if (!response.ok) {
+          throw new Error("Failed to end chat session")
+        }
+        const data = await response.json()
+        if (data.status === "error") {
+          throw new Error(data.message)
+        }
+      } catch (error) {
+        console.error("Error ending chat:", error)
+        toast.error(error instanceof Error ? error.message : "Failed to properly end chat session")
+      } finally {
+        setConvId("")
+        setSheetOpen(false)
+      }
+    }
+  }, [convId])
+
+  const processPaper = async (currentConvId: string) => {
+    if (!arxivId.trim() || !currentConvId) return
+    
+    setProcessingPaper(true)
+    try {
+      const response = await fetch(`http://localhost:8000/process/${arxivId}/${currentConvId}`, {
+        method: "POST",
+      })
+      if (!response.ok) {
+        throw new Error("Failed to process paper")
+      }
+      const data = await response.json()
+      if (data.status !== "success") {
+        throw new Error(data.message || "Failed to process paper")
+      }
+    } catch (error) {
+      console.error("Error processing paper:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to process paper")
+      setSheetOpen(false)
+      await endChat()
+      return false
+    } finally {
+      setProcessingPaper(false)
+    }
+    return true
   }
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: NodeJS.Timeout
     if (convId) {
       timeout = setTimeout(() => {
-        fetch(`http://localhost:8000/deleteconv/${convId}`, { method: "DELETE" })
-          .catch(console.error);
-        setConvId("");
-      }, 10 * 60 * 1000); // 10 minutes
+        endChat()
+      }, 10 * 60 * 1000) // 10 minutes
     }
-    return () => clearTimeout(timeout);
-  }, [convId]);
+    return () => clearTimeout(timeout)
+  }, [convId, endChat])
 
-  const handleSheetOpenChange = (open: boolean) => {
-    if (open) {
-      if (!convId) {
-        setConvId(uuidv4());
+  const handleSheetOpenChange = async (open: boolean) => {
+    if (open && !convId) {
+      const newConvId = uuidv4()
+      setConvId(newConvId)
+      setSheetOpen(true)
+      const success = await processPaper(newConvId)
+      if (!success) {
+        setConvId("")
+        setSheetOpen(false)
       }
-    } else {
-      endChat();
+    } else if (!open && convId) {
+      await endChat()
     }
-    setSheetOpen(open);
-  };
-
-  const endChat = () => {
-    if (convId) {
-      fetch(`http://localhost:8000/deleteconv/${convId}`, { method: "DELETE" })
-        .catch(console.error);
-      setConvId("");
-    }
-  };
-
+  }
 
   const fetchAugmenters = async (term: string) => {
     try {
       const response = await fetch(`http://localhost:8000/term/${term}`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch term details")
+      }
       const data: Augmenter[] = await response.json()
 
       setAugmenterGroups((prevGroups) => [...prevGroups, { term, augmenters: data }])
@@ -112,6 +169,7 @@ export default function Home() {
       }, 100)
     } catch (error) {
       console.error("Error fetching augmenters:", error)
+      toast.error("Failed to fetch additional information for the term")
     }
   }
 
@@ -135,137 +193,121 @@ export default function Home() {
                 onChange={(e) => setArxivId(e.target.value)}
                 className="text-lg"
               />
-              <Button onClick={handleSearch} disabled={loading}>
+              <Button onClick={handleSearch} disabled={loading || !arxivId.trim()}>
                 {loading ? "Loading..." : <Search className="h-5 w-5" />}
               </Button>
               <Sheet open={sheetOpen} onOpenChange={handleSheetOpenChange}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span>
-                      <SheetTrigger asChild disabled={!arxivId}>
-                        <Button variant="outline" disabled={!arxivId}>
+                      <SheetTrigger asChild disabled={!arxivId.trim()}>
+                        <Button variant="outline" disabled={!arxivId.trim()}>
                           <MessageCircle className="h-5 w-5" />
                         </Button>
                       </SheetTrigger>
                     </span>
                   </TooltipTrigger>
-                  {!arxivId && <TooltipContent>Please enter an ArXiv ID to start chatting</TooltipContent>}
+                  {!arxivId.trim() && <TooltipContent>Please enter an ArXiv ID to start chatting</TooltipContent>}
                 </Tooltip>
 
-                <SheetContent side="right" className="w-[90vw] sm:w-[600px] md:w-[700px] lg:w-[800px] max-w-[800px]">
+                <SheetContent 
+                  side="right" 
+                  className="w-[50vw] sm:max-w-[50vw] overflow-hidden"
+                >
                   <SheetHeader>
                     <SheetTitle>Chat about the paper</SheetTitle>
                   </SheetHeader>
-                  <Chat convId={convId} arxivId={arxivId} onEndChat={endChat} />
+                  {processingPaper ? (
+                    <div className="flex flex-col items-center justify-center h-full">
+                      <LoadingSpinner />
+                      <p className="mt-4 text-lg">Processing paper...</p>
+                    </div>
+                  ) : (
+                    <Chat convId={convId} arxivId={arxivId} onEndChat={endChat} />
+                  )}
                 </SheetContent>
               </Sheet>
             </div>
 
-            {loading ? (
-              <div className="space-y-6">
-                {["Overall Summary", "Key Terms", "Abstract", "Methodology", "Conclusions", "Figures and Tables"].map(
-                  (title) => (
-                    <div key={title} className="p-4 md:p-6 border border-gray-200 rounded-lg">
-                      <h2 className="text-3xl md:text-5xl font-semibold mb-3">{title}</h2>
-                      <LoadingAnimation />
-                    </div>
-                  ),
-                )}
+            {loading && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <LoadingAnimation />
               </div>
-            ) : (
-              summaries && (
-                <div className="space-y-6">
-                  <div className="p-4 md:p-6">
-                    <h2 className="text-3xl md:text-5xl font-semibold mb-1">Overall Summary</h2>
-                    <h5 className="text-lg md:text-xl text-gray-400 mb-4 md:mb-6">
-                      A summary of the paper&apos;s core
-                    </h5>
-                    <MarkdownRenderer>{summaries.overall_summary.summary}</MarkdownRenderer>
-                  </div>
+            )}
 
-                  <div className="p-4 md:p-6">
-                    <h2 className="text-3xl md:text-5xl font-semibold mb-1">Key Terms</h2>
-                    <h5 className="text-lg md:text-xl text-gray-400 mb-4 md:mb-6">
-                      The key terms required to understand the paper.
-                    </h5>
-                    <div className="flex flex-wrap gap-2">
-                      {summaries.terms_and_summaries.key_terms.map((term, index) => (
-                        <Tooltip key={index}>
-                          <TooltipTrigger
-                            className="text-blue-600 cursor-pointer hover:underline"
-                            onClick={() => fetchAugmenters(term)}
-                          >
-                            <Badge className="text-sm font-medium px-2 py-1">{term}</Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>{`Click to see more about "${term}"`}</TooltipContent>
-                        </Tooltip>
-                      ))}
+            {summaries && (
+              <div className="max-w-4xl mx-auto space-y-8">
+                <div className="bg-card rounded-lg p-6 shadow-sm">
+                  <h2 className="text-2xl font-bold mb-4">Overall Summary</h2>
+                  <MarkdownRenderer>{summaries.overall_summary.summary}</MarkdownRenderer>
+                </div>
+
+                <div className="bg-card rounded-lg p-6 shadow-sm">
+                  <h2 className="text-2xl font-bold mb-4">Key Terms</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {summaries.terms_and_summaries.key_terms.map((term) => (
+                      <Badge
+                        key={term}
+                        className="cursor-pointer hover:bg-primary/90"
+                        onClick={() => fetchAugmenters(term)}
+                      >
+                        {term}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div ref={augmentersRef}>
+                  {augmenterGroups.map((group) => (
+                    <div key={group.term} className="bg-card rounded-lg p-6 shadow-sm mb-4">
+                      <h3 className="text-xl font-semibold mb-3">Related to: {group.term}</h3>
+                      <ul className="space-y-2">
+                        {group.augmenters.map((augmenter) => (
+                          <li key={augmenter.url}>
+                            <a
+                              href={augmenter.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {augmenter.title}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  </div>
+                  ))}
+                </div>
 
-                  <div className="p-4 md:p-6">
-                    <h2 className="text-3xl md:text-5xl font-semibold mb-1">Abstract</h2>
-                    <h5 className="text-lg md:text-xl text-gray-400 mb-4 md:mb-6">
-                      A summary of the paper&apos;s abstract.
-                    </h5>
-                    <MarkdownRenderer>{summaries.terms_and_summaries.abs_explanation}</MarkdownRenderer>
-                  </div>
+                <div className="bg-card rounded-lg p-6 shadow-sm">
+                  <h2 className="text-2xl font-bold mb-4">Abstract</h2>
+                  <MarkdownRenderer>{summaries.terms_and_summaries.abs_explanation}</MarkdownRenderer>
+                </div>
 
-                  <div className="p-4 md:p-6">
-                    <h2 className="text-3xl md:text-5xl font-semibold mb-1">Methodology</h2>
-                    <h5 className="text-lg md:text-xl text-gray-400 mb-4 md:mb-6">
-                      A summary of the methodology employed for research in the paper.
-                    </h5>
-                    <MarkdownRenderer>{summaries.terms_and_summaries.meth_explanation}</MarkdownRenderer>
-                  </div>
+                <div className="bg-card rounded-lg p-6 shadow-sm">
+                  <h2 className="text-2xl font-bold mb-4">Methodology</h2>
+                  <MarkdownRenderer>{summaries.terms_and_summaries.meth_explanation}</MarkdownRenderer>
+                </div>
 
-                  <div className="p-4 md:p-6">
-                    <h2 className="text-3xl md:text-5xl font-semibold mb-1">Conclusions</h2>
-                    <h5 className="text-lg md:text-xl text-gray-400 mb-4 md:mb-6">
-                      A summary of the conclusion of the research done in the paper.
-                    </h5>
-                    <MarkdownRenderer>{summaries.terms_and_summaries.conc_explanation}</MarkdownRenderer>
-                  </div>
+                <div className="bg-card rounded-lg p-6 shadow-sm">
+                  <h2 className="text-2xl font-bold mb-4">Conclusions</h2>
+                  <MarkdownRenderer>{summaries.terms_and_summaries.conc_explanation}</MarkdownRenderer>
+                </div>
 
-                  {summaries.table_and_figure_summaries.table_and_figure_summaries.length > 0 && (
-                    <div className="p-4 md:p-6">
-                      <h2 className="text-3xl md:text-5xl font-semibold mb-4 md:mb-6">Figures and Tables</h2>
-                      {summaries.table_and_figure_summaries.table_and_figure_summaries.map((fig, index) => (
-                        <div key={index} className="mb-4">
+                {summaries.table_and_figure_summaries.table_and_figure_summaries.length > 0 && (
+                  <div className="bg-card rounded-lg p-6 shadow-sm">
+                    <h2 className="text-2xl font-bold mb-4">Figures and Tables</h2>
+                    <div className="space-y-4">
+                      {summaries.table_and_figure_summaries.table_and_figure_summaries.map((fig) => (
+                        <div key={fig.figure_num} className="border-l-4 border-primary pl-4">
                           <h3 className="font-semibold mb-2">{fig.figure_num}</h3>
                           <MarkdownRenderer>{fig.figure_summary}</MarkdownRenderer>
                         </div>
                       ))}
                     </div>
-                  )}
-
-                  {augmenterGroups.length > 0 && (
-                    <div ref={augmentersRef} className="space-y-6">
-                      {augmenterGroups.map((group, index) => (
-                        <div key={index} className="p-4 md:p-6 border border-gray-200 rounded-lg">
-                          <h2 className="text-3xl md:text-5xl font-semibold mb-3">
-                            Related Resources for {group.term}
-                          </h2>
-                          <ul className="list-disc list-inside">
-                            {group.augmenters.map((aug, i) => (
-                              <li key={i}>
-                                <a
-                                  href={aug.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-black hover:underline"
-                                >
-                                  {aug.title}
-                                </a>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </main>

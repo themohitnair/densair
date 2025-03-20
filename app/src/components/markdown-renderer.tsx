@@ -1,7 +1,17 @@
-import ReactMarkdown from "react-markdown";
-import { cn } from "@/lib/utils";
+"use client"
 
-const MarkdownRenderer = ({ children, className }: { children: string; className?: string }) => {
+import ReactMarkdown from "react-markdown"
+import { cn } from "@/lib/utils"
+
+interface MarkdownRendererProps {
+  children?: string
+  content?: string
+  className?: string
+}
+
+const MarkdownRenderer = ({ children, content, className }: MarkdownRendererProps) => {
+  const markdownContent = content || children || ""
+
   return (
     <div className={cn("prose prose-neutral dark:prose-invert max-w-none", className)}>
       <ReactMarkdown
@@ -41,10 +51,10 @@ const MarkdownRenderer = ({ children, className }: { children: string; className
           ),
         }}
       >
-        {children}
+        {markdownContent}
       </ReactMarkdown>
     </div>
-  );
-};
+  )
+}
 
-export default MarkdownRenderer;
+export default MarkdownRenderer

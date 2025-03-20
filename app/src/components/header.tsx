@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 
 export function Header() {
   return (
-    <header className="border-b bg-background w-full">
+    <header className="bg-background w-full">
       <div className="container flex h-16 items-center justify-between px-4 max-w-full">
         <div className="flex items-center">
           <Link href="/" className="flex items-center">
