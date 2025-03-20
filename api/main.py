@@ -7,8 +7,12 @@ from services.vector import VecService
 
 from models import DocumentProcessStatus
 
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from starlette.responses import JSONResponse
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import logging.config
 
@@ -16,7 +20,10 @@ logging.config.dictConfig(LOG_CONFIG)
 logger = logging.getLogger(__name__)
 
 
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI()
+app.state.limiter = limiter
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,12 +34,16 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-async def greet():
-    return {"message": "Welcome to the densAIr project!"}
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"error": "Rate limit exceeded. Please try again later."},
+    )
 
 
 @app.get("/arxiv/{arxiv_id}")
+@limiter.limit("5/minute")
 async def process_pdf(arxiv_id: str):
     pdf = ArxivPDF(arxiv_id)
     pdf_bytes = await pdf.fetch_arxiv_pdf_bytes()
@@ -45,6 +56,7 @@ async def process_pdf(arxiv_id: str):
 
 
 @app.get("/term/{term}")
+@limiter.limit("50/minute")
 async def get_term_augmenters(term: str):
     searcher = TermSearcher(term)
 
@@ -54,6 +66,7 @@ async def get_term_augmenters(term: str):
 
 
 @app.post("/process/{arxiv_id}/{conv_id}")
+@limiter.limit("2/minute")
 async def process_paper(arxiv_id: str, conv_id: str):
     v = VecService(arxiv_id, conv_id)
 
@@ -72,6 +85,7 @@ async def process_paper(arxiv_id: str, conv_id: str):
 
 
 @app.get("/query/{arxiv_id}/{conv_id}")
+@limiter.limit("100/minute")
 async def query_paper(arxiv_id: str, conv_id: str, query: str):
     v = VecService(arxiv_id, conv_id)
 
