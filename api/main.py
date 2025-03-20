@@ -97,7 +97,9 @@ async def delete_conversation(conv_id: str):
                 "message": f"Namespace {conv_id} does not exist or was already deleted.",
             }
 
-        v.dispose_vectors_by_namespace()
+        success = v.dispose_vectors_by_namespace()
+        if not success:
+            raise Exception("Failed to delete vectors")
 
         return {
             "status": "success",

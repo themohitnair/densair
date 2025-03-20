@@ -18,15 +18,8 @@ LOG_CONFIG = {
             "formatter": "simple",
             "stream": "ext://sys.stdout",
         },
-        "file": {
-            "class": "logging.FileHandler",
-            "level": "INFO",
-            "formatter": "detailed",
-            "filename": "app.log",
-            "mode": "a",
-        },
     },
-    "root": {"level": "WARNING", "handlers": ["console", "file"]},
+    "root": {"level": "INFO", "handlers": ["console"]},
 }
 
 load_dotenv()
