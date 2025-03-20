@@ -6,6 +6,7 @@ from google import genai
 from google.genai import types
 import logging.config
 import json
+import asyncio
 
 logging.config.dictConfig(LOG_CONFIG)
 logger = logging.getLogger(__name__)
@@ -78,9 +79,15 @@ class Extractor:
         return response.text
 
     async def get_all_summaries(self) -> EndResponse:
-        overall_summary = await self.overall_explanation()
-        sectionwise_explanations = await self.sectionwise_explanations()
-        figure_summaries = await self.figure_summaries()
+        (
+            overall_summary,
+            sectionwise_explanations,
+            figure_summaries,
+        ) = await asyncio.gather(
+            self.overall_explanation(),
+            self.sectionwise_explanations(),
+            self.figure_summaries(),
+        )
 
         return EndResponse(
             overall_summary=json.loads(overall_summary),
