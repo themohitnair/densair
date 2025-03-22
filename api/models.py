@@ -26,6 +26,7 @@ class TermsAndSummaries(BaseModel):
 
 class OverallSummary(BaseModel):
     summary: str
+    context: str
 
 
 class EndResponse(BaseModel):

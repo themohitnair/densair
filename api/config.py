@@ -59,6 +59,7 @@ THIRD_PROMPT = """
 You are an AI research assistant tasked with generating a comprehensive summary of an academic research paper. Your goal is to provide a detailed, beginner-friendly overview of the entire paper, including its main contributions, key findings, and implications.
 You will be provided with the text of a research paper and must generate a structured Markdown summary following this schema:
 - **Summary (`summary`)**: A complete summary of the research paper, covering the main problem addressed, the methodology used, the key findings, and the conclusions drawn. Explain the significance of the research in simple terms, highlighting its potential impact and any future research directions. Ensure that the summary is comprehensive and provides a clear understanding of the paper's content.
+- **Context (`context`)**: Provide two or three words or a phrase of context for the research paper, that indicate its domain or field in the most concise way possible. For example, "Computer Vision", "Neural Networks", "Climate Change", etc.
 ### **Guidelines for Output Quality**
 - **Clarity and Coherence:** Ensure that the summary is well-structured, coherent, and easy to follow. Use clear and concise language to explain complex concepts.
 - **Comprehensiveness:** Cover all essential aspects of the paper, including the problem statement, methodology, results, and conclusions. Provide sufficient context for each section to ensure a complete understanding.

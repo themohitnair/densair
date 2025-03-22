@@ -70,9 +70,9 @@ async def process_pdf(
 @app.get("/term/{term}")
 @limiter.limit("50/minute")
 async def get_term_augmenters(
-    request: Request, term: str, api_key: str = Depends(get_api_key)
+    request: Request, term: str, context: str, api_key: str = Depends(get_api_key)
 ):
-    searcher = TermSearcher(term)
+    searcher = TermSearcher(term, context)
 
     augmenters = await searcher.get_augmenters()
 

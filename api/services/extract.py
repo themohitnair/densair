@@ -1,6 +1,17 @@
-from config import LOG_CONFIG, FIRST_PROMPT, SECOND_PROMPT, THIRD_PROMPT, GEM_KEY
+from config import (
+    LOG_CONFIG,
+    FIRST_PROMPT,
+    SECOND_PROMPT,
+    THIRD_PROMPT,
+    GEM_KEY,
+)
 
-from models import TermsAndSummaries, FigureSummaries, OverallSummary, EndResponse
+from models import (
+    TermsAndSummaries,
+    FigureSummaries,
+    OverallSummary,
+    EndResponse,
+)
 
 from google import genai
 from google.genai import types
