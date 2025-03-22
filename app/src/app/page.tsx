@@ -229,7 +229,7 @@ export default function Home() {
                   {!arxivId.trim() && <TooltipContent>Please enter an ArXiv ID to start chatting</TooltipContent>}
                 </Tooltip>
 
-                <SheetContent side="right" className="w-[50vw] sm:max-w-[50vw] overflow-hidden">
+                <SheetContent side="right" className="w-screen max-w-screen sm:w-[50vw] sm:max-w-[50vw] overflow-hidden">
                   <SheetHeader>
                     <SheetTitle>Chat about the paper</SheetTitle>
                   </SheetHeader>
