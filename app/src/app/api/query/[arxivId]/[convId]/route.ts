@@ -1,21 +1,19 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs';
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { arxivId: string; convId: string } }
 ) {
-  // Await dynamic parameters
-  const { arxivId, convId } = await Promise.resolve(params);
-
+  const { arxivId, convId } = params;
   const API_URL = process.env.API_URL;
   const API_KEY = process.env.API_KEY;
 
   if (!API_URL || !API_KEY) {
-    console.error('Missing env variables');
+    console.error('Missing environment variables');
     return NextResponse.json(
-      { error: 'API configuration missing' },
+      { error: 'Server configuration error' },
       { status: 500 }
     );
   }
@@ -24,28 +22,57 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('query');
     
-    if (!query) {
+    if (!query?.trim()) {
       return NextResponse.json(
-        { error: 'Query parameter is required' },
+        { 
+          error: 'Query parameter is required',
+          arxivId,
+          convId
+        },
         { status: 400 }
       );
     }
 
-    const response = await fetch(
-      `${API_URL}/query/${arxivId}/${convId}?query=${encodeURIComponent(query)}`,
-      { headers: { 'x-api-key': API_KEY as string } }
-    );
+    const apiUrl = new URL(`${API_URL}/query/${arxivId}/${convId}`);
+    apiUrl.searchParams.set('query', query);
+
+    const response = await fetch(apiUrl.toString(), {
+      headers: { 
+        'x-api-key': API_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
     
     if (!response.ok) {
-      throw new Error('Failed to get response from the server');
+      return NextResponse.json(
+        { 
+          error: `API request failed with status ${response.status}`,
+          arxivId,
+          convId
+        },
+        { status: response.status }
+      );
     }
     
     const data = await response.json();
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('Error querying paper:', error);
+    return NextResponse.json({
+      success: true,
+      arxivId,
+      convId,
+      query,
+      data
+    });
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown query error';
+    console.error(`Error querying ${arxivId}/${convId}:`, errorMessage);
+    
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to get response' },
+      { 
+        error: `Query failed: ${errorMessage}`,
+        arxivId,
+        convId
+      },
       { status: 500 }
     );
   }

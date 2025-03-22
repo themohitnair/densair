@@ -1,41 +1,65 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { arxivId: string; convId: string } }
 ) {
-  // Await dynamic parameters
-  const { arxivId, convId } = await Promise.resolve(params);
+  const { arxivId, convId } = params;
 
   const API_URL = process.env.API_URL;
   const API_KEY = process.env.API_KEY;
 
   if (!API_URL || !API_KEY) {
-    console.error('Missing env variables');
+    console.error('Missing environment variables');
     return NextResponse.json(
-      { error: 'API configuration missing' },
+      { error: 'Server configuration error' },
       { status: 500 }
     );
   }
+
   try {
     const response = await fetch(
       `${API_URL}/process/${arxivId}/${convId}`,
       { 
         method: 'POST',
         headers: {
-          'x-api-key': API_KEY as string,
-        }
+          'x-api-key': API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(await request.json())
       }
     );
+
     if (!response.ok) {
-      throw new Error('Failed to process paper');
+      return NextResponse.json(
+        { 
+          error: `Processing failed with status ${response.status}`,
+          arxivId,
+          convId
+        },
+        { status: response.status }
+      );
     }
+
     const data = await response.json();
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('Error processing paper:', error);
+    return NextResponse.json({
+      success: true,
+      message: 'Paper processed successfully',
+      arxivId,
+      convId,
+      data
+    });
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown processing error';
+    console.error(`Error processing paper ${arxivId} for conversation ${convId}:`, errorMessage);
+    
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to process paper' },
+      { 
+        error: `Processing failed: ${errorMessage}`,
+        arxivId,
+        convId
+      },
       { status: 500 }
     );
   }

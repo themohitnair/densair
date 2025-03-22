@@ -207,7 +207,7 @@ export default function Home() {
 
             <div className="max-w-xl mx-auto mb-8 flex gap-2">
               <Input
-                placeholder="2307.01000"
+                placeholder="1706.03762"
                 value={arxivId}
                 onChange={(e) => setArxivId(e.target.value)}
                 className="text-lg"

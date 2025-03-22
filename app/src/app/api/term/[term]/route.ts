@@ -4,7 +4,7 @@ export async function GET(
   request: Request,
   { params }: { params: { term: string } }
 ) {
-  const { term } = await Promise.resolve(params);
+  const { term } = params;
 
   const API_URL = process.env.API_URL;
   const API_KEY = process.env.API_KEY;
