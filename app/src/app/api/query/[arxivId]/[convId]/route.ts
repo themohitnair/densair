@@ -4,9 +4,9 @@ export const runtime = 'nodejs';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { arxivId: string; convId: string } }
+  { params }: { params: Promise<{ arxivId: string; convId: string }> }
 ) {
-  const { arxivId, convId } = params;
+  const { arxivId, convId } = await params;
   const API_URL = process.env.API_URL;
   const API_KEY = process.env.API_KEY;
 
@@ -37,38 +37,40 @@ export async function GET(
     apiUrl.searchParams.set('query', query);
 
     const response = await fetch(apiUrl.toString(), {
-      headers: { 
+      headers: {
         'x-api-key': API_KEY,
         'Content-Type': 'application/json'
       }
     });
     
     if (!response.ok) {
-      return NextResponse.json(
-        { 
-          error: `API request failed with status ${response.status}`,
-          arxivId,
-          convId
-        },
-        { status: response.status }
-      );
+        let errorData;
+        try {
+            errorData = await response.json();
+        } catch {
+            errorData = { error: await response.text() };
+        }
+        
+        return NextResponse.json(
+            { 
+                error: errorData.error || "Backend error",
+                arxivId,
+                convId
+            },
+            { status: response.status }
+        );
     }
+  
     
     const data = await response.json();
-    return NextResponse.json({
-      success: true,
-      arxivId,
-      convId,
-      query,
-      data
-    });
+    return NextResponse.json(data);
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown query error';
     console.error(`Error querying ${arxivId}/${convId}:`, errorMessage);
     
     return NextResponse.json(
-      { 
+      {
         error: `Query failed: ${errorMessage}`,
         arxivId,
         convId

@@ -68,7 +68,7 @@ class VecService:
         except Exception as e:
             logger.error(f"Error in insert_vectors: {e}", exc_info=True)
 
-    def query_index(self, query: str, top_k: int = 7) -> List[QueryResult] | None:
+    def query_index(self, query: str, top_k: int = 5) -> List[QueryResult] | None:
         try:
             logger.info(f"Starting query for: '{query}' in namespace '{self.conv_id}'.")
 
@@ -92,6 +92,7 @@ class VecService:
                 context += chunk + "\n\n"
 
             logger.info("Context assembled.")
+            logger.info(f"Query: {query} | Context Length: {len(context)}")
 
             response = self.client.chat.completions.create(
                 model="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
@@ -111,15 +112,13 @@ class VecService:
             logger.error(f"Error in query_index: {e}", exc_info=True)
             return None
 
-    def dispose_vectors_by_namespace(self):
+    def dispose_vectors_by_namespace(self) -> bool:
         try:
-            existing_namespaces = self.index.list_namespaces()
-            if self.conv_id in existing_namespaces:
-                self.index.delete_namespace(self.conv_id)
-            else:
-                print(f"Namespace {self.conv_id} does not exist. Skipping deletion.")
-        except UpstashError as e:
-            print(f"Error deleting namespace {self.conv_id}: {str(e)}")
+            self.index.delete_namespace(self.conv_id)
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting namespace {self.conv_id}: {e}")
+            return False
 
     def vectors_exist(self) -> bool:
         try:

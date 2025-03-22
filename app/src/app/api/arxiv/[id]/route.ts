@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export const runtime = 'nodejs';
-
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
 
   const API_URL = process.env.API_URL;
   const API_KEY = process.env.API_KEY;
 
   if (!API_URL || !API_KEY) {
     return NextResponse.json(
-      { error: 'API configuration missing' },
+      { error: 'Server configuration error' },
       { status: 500 }
     );
   }
@@ -25,20 +23,16 @@ export async function GET(
     
     if (!response.ok) {
       return NextResponse.json(
-        { error: `API responded with ${response.status}: ${response.statusText}` },
+        { error: `API responded with ${response.status}` },
         { status: response.status }
       );
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
-
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error(`Error fetching paper ${id}:`, message);
+    return NextResponse.json(await response.json());
     
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: `Failed to fetch paper details: ${message}` },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }

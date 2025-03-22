@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server'
 
 export async function GET(
   request: Request,
-  { params }: { params: { term: string } }
-) {
-  const { term } = params;
+  { params }: { params: Promise<{ term: string }> }
+): Promise<NextResponse> {
+  const { term } = await params;
 
   const API_URL = process.env.API_URL;
   const API_KEY = process.env.API_KEY;

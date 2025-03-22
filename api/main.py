@@ -1,5 +1,7 @@
 from config import LOG_CONFIG, API_KEY
 
+import time
+
 from services.acquire import ArxivPDF
 from services.extract import Extractor
 from services.search import TermSearcher
@@ -118,33 +120,29 @@ async def query_paper(
 
 
 @app.delete("/deleteconv/{conv_id}")
-async def delete_conversation(
-    request: Request, conv_id: str, _: str = Depends(verify_api_key)
-):
+async def delete_conversation(conv_id: str, _: str = Depends(verify_api_key)):
     try:
         v = VecService(arxiv_id="dummy", conv_id=conv_id)
 
         if not v.vectors_exist():
-            logger.warning(f"Namespace {conv_id} does not exist, skipping deletion.")
-            return {
-                "status": "error",
-                "message": f"Namespace {conv_id} does not exist or was already deleted.",
-            }
+            logger.info(f"Namespace {conv_id} doesn't exist, skipping deletion")
+            return {"status": "success", "message": "No vectors to delete"}
 
         success = v.dispose_vectors_by_namespace()
-        if not success:
-            raise Exception("Failed to delete vectors")
+
+        time.sleep(0.01)
 
         return {
-            "status": "success",
-            "message": f"Conversation {conv_id} and all associated vectors have been deleted.",
+            "status": "success" if success else "error",
+            "message": (
+                "Vectors deleted"
+                if success
+                else "Deletion attempted but may not have completed"
+            ),
         }
     except Exception as e:
-        logger.error(f"Error deleting conversation {conv_id}: {e}", exc_info=True)
-        return {
-            "status": "error",
-            "message": f"Failed to delete conversation: {str(e)}",
-        }
+        logger.error(f"Critical error deleting {conv_id}: {e}")
+        return {"status": "error", "message": str(e)}
 
 
 if __name__ == "__main__":

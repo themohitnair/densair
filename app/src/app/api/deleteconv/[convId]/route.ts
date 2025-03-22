@@ -4,9 +4,9 @@ export const runtime = 'nodejs';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { convId: string } }
+  { params }: { params: Promise<{ convId: string }> }
 ) {
-  const { convId } = params;
+  const { convId } = await params;
 
   const API_URL = process.env.API_URL;
   const API_KEY = process.env.API_KEY;

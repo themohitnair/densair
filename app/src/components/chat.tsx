@@ -34,12 +34,9 @@ export function Chat({ convId, arxivId, onEndChat }: ChatProps) {
     setMessages((prev) => [...prev, { role: "user", content: userMessage }])
     setLoading(true)
 
+
     try {
-      const queryResponse = await fetch(
-        `/api/query/${arxivId}/${convId}?query=${encodeURIComponent(
-          userMessage
-        )}`
-      )
+      const queryResponse = await fetch(`/api/query/${arxivId}/${convId}?query=${encodeURIComponent(userMessage)}`)
 
       if (!queryResponse.ok) {
         throw new Error("Failed to get response from the server")
@@ -57,7 +54,7 @@ export function Chat({ convId, arxivId, onEndChat }: ChatProps) {
           { role: "assistant", content: queryData.response },
         ])
       } else {
-        throw new Error("No response received from the server")
+        throw new Error("Received empty response from server")
       }
     } catch (error) {
       console.error("Error in chat:", error)
@@ -65,8 +62,8 @@ export function Chat({ convId, arxivId, onEndChat }: ChatProps) {
       setMessages((prev) => [
         ...prev,
         { 
-          role: "assistant", 
-          content: "I apologize, but I encountered an error processing your request. Please try again." 
+          role: "assistant",
+          content: "I apologize, but I encountered an error processing your request. Please try again."
         },
       ])
     } finally {
