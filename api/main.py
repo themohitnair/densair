@@ -30,7 +30,7 @@ def verify_api_key(x_api_key: str = Header(None)):
 
 limiter = Limiter(key_func=get_remote_address)
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.state.limiter = limiter
 
 app.add_middleware(
