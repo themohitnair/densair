@@ -54,35 +54,34 @@ export default function Home() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [augmenterGroups, setAugmenterGroups] = useState<AugmenterGroup[]>([])
   const [processingPaper, setProcessingPaper] = useState(false)
-  const [context, setContext] = useState<string | null>(null);
+  const [context, setContext] = useState<string | null>(null)
 
   const augmentersRef = useRef<HTMLDivElement>(null)
 
   const handleSearch = async () => {
     if (!arxivId.trim()) {
-      toast.error("Please enter an ArXiv ID");
-      return;
+      toast.error("Please enter an ArXiv ID")
+      return
     }
-  
-    setLoading(true);
-    setSummaries(null);
+
+    setLoading(true)
+    setSummaries(null)
     try {
-      const response = await fetch(`/api/arxiv/${arxivId}`);
+      const response = await fetch(`/api/arxiv/${arxivId}`)
       if (!response.ok) {
-        throw new Error(`Failed to fetch paper: ${response.statusText}`);
+        throw new Error(`Failed to fetch paper: ${response.statusText}`)
       }
-      const data = await response.json();
-      
-      setSummaries(data);
-      setContext(data.overall_summary.context);
-  
+      const data = await response.json()
+
+      setSummaries(data)
+      setContext(data.overall_summary.context)
     } catch (error) {
-      console.error("Error fetching summaries:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to fetch paper details");
+      console.error("Error fetching summaries:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to fetch paper details")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const endChat = useCallback(async () => {
     if (convId) {
@@ -109,7 +108,7 @@ export default function Home() {
 
   const processPaper = async (currentConvId: string) => {
     if (!arxivId.trim() || !currentConvId) return
-    
+
     setProcessingPaper(true)
     try {
       const response = await fetch(`/api/process/${arxivId}/${currentConvId}`, {
@@ -137,9 +136,12 @@ export default function Home() {
   useEffect(() => {
     let timeout: NodeJS.Timeout
     if (convId) {
-      timeout = setTimeout(() => {
-        endChat()
-      }, 10 * 60 * 1000) // 10 minutes
+      timeout = setTimeout(
+        () => {
+          endChat()
+        },
+        10 * 60 * 1000
+      ) // 10 minutes
     }
     return () => clearTimeout(timeout)
   }, [convId, endChat])
@@ -161,27 +163,34 @@ export default function Home() {
 
   const fetchAugmenters = async (term: string) => {
     if (!context) {
-      toast.error("Context is missing. Try fetching the paper summary first.");
-      return;
+      toast.error("Context is missing. Try fetching the paper summary first.")
+      return
     }
-  
+
+    // Check if the term already exists in augmenterGroups
+    if (augmenterGroups.some(group => group.term === term)) {
+      // Scroll to the existing term's section
+      augmentersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      return
+    }
+
     try {
-      const response = await fetch(`/api/term/${term}?context=${encodeURIComponent(context)}`);
+      const response = await fetch(`/api/term/${term}?context=${encodeURIComponent(context)}`)
       if (!response.ok) {
-        throw new Error("Failed to fetch term details");
+        throw new Error("Failed to fetch term details")
       }
-      const data: Augmenter[] = await response.json();
-  
-      setAugmenterGroups((prevGroups) => [...prevGroups, { term, augmenters: data }]);
-  
+      const data: Augmenter[] = await response.json()
+
+      setAugmenterGroups((prevGroups) => [...prevGroups, { term, augmenters: data }])
+
       setTimeout(() => {
-        augmentersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
+        augmentersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 100)
     } catch (error) {
-      console.error("Error fetching augmenters:", error);
-      toast.error("Failed to fetch additional information for the term");
+      console.error("Error fetching augmenters:", error)
+      toast.error("Failed to fetch additional information for the term")
     }
-  };
+  }
 
   return (
     <TooltipProvider>
@@ -191,8 +200,8 @@ export default function Home() {
           <div className="container mx-auto px-4 py-8 md:py-16">
             <div className="max-w-2xl mx-auto text-center mb-8 md:mb-12">
               <h1 className="text-3xl md:text-4xl font-bold mb-4">ArXiv Paper Analysis</h1>
-              <p className="text-muted-foreground">
-                Enter an ArXiv paper ID to get comprehensive summaries and insights
+              <p className="text-lg text-muted-foreground">
+                Simplifying Research Reading and Literature Reviews
               </p>
             </div>
 
@@ -220,10 +229,7 @@ export default function Home() {
                   {!arxivId.trim() && <TooltipContent>Please enter an ArXiv ID to start chatting</TooltipContent>}
                 </Tooltip>
 
-                <SheetContent 
-                  side="right" 
-                  className="w-[50vw] sm:max-w-[50vw] overflow-hidden"
-                >
+                <SheetContent side="right" className="w-[50vw] sm:max-w-[50vw] overflow-hidden">
                   <SheetHeader>
                     <SheetTitle>Chat about the paper</SheetTitle>
                   </SheetHeader>
@@ -255,30 +261,30 @@ export default function Home() {
                 <div className="bg-card rounded-lg p-4">
                   <h2 className="text-2xl font-bold mb-4">Key Terms</h2>
                   <div className="flex flex-wrap gap-2">
-                  {summaries.terms_and_summaries.key_terms.map((term, index) => (
-                    <Badge
-                      key={`${term}-${index}`}
-                      className="cursor-pointer hover:bg-primary/90"
-                      onClick={() => fetchAugmenters(term)}
-                    >
-                      {term}
-                    </Badge>
-                  ))}
+                    {summaries.terms_and_summaries.key_terms.map((term, index) => (
+                      <Badge
+                        key={`${term}-${index}`}
+                        className="cursor-pointer hover:bg-primary/90"
+                        onClick={() => fetchAugmenters(term)}
+                      >
+                        {term}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
 
                 <div ref={augmentersRef}>
-                  {augmenterGroups.map((group) => (
+                  {augmenterGroups.map((group: AugmenterGroup) => (
                     <div key={group.term} className="bg-card rounded-lg p-4 mb-4">
-                      <h3 className="text-xl font-semibold mb-3">Related to: {group.term}</h3>
+                      <h3 className="text-xl font-semibold mb-3">Resources for - {group.term}</h3>
                       <ul className="space-y-2">
-                        {group.augmenters.map((augmenter) => (
+                        {group.augmenters.map((augmenter: Augmenter) => (
                           <li key={augmenter.url}>
                             <a
                               href={augmenter.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-primary hover:underline"
+                              className="text-blue-600 hover:underline"
                             >
                               {augmenter.title}
                             </a>
