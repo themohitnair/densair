@@ -12,7 +12,6 @@ from together import Together
 from chonkie import RecursiveChunker, RecursiveRules
 from upstash_vector import Index, Vector
 from upstash_vector.types import QueryResult
-from upstash_vector.errors import UpstashError
 from transformers import AutoTokenizer
 from typing import List
 import logging
