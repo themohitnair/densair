@@ -36,7 +36,7 @@ export function Chat({ convId, arxivId, onEndChat }: ChatProps) {
 
     try {
       const queryResponse = await fetch(
-        `http://localhost:8000/query/${arxivId}/${convId}?query=${encodeURIComponent(
+        `/api/query/${arxivId}/${convId}?query=${encodeURIComponent(
           userMessage
         )}`
       )

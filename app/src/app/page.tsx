@@ -23,6 +23,7 @@ interface FigureSummary {
 interface Summaries {
   overall_summary: {
     summary: string
+    context: string
   }
   terms_and_summaries: {
     key_terms: string[]
@@ -53,36 +54,40 @@ export default function Home() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [augmenterGroups, setAugmenterGroups] = useState<AugmenterGroup[]>([])
   const [processingPaper, setProcessingPaper] = useState(false)
+  const [context, setContext] = useState<string | null>(null);
 
   const augmentersRef = useRef<HTMLDivElement>(null)
 
   const handleSearch = async () => {
     if (!arxivId.trim()) {
-      toast.error("Please enter an ArXiv ID")
-      return
+      toast.error("Please enter an ArXiv ID");
+      return;
     }
-
-    setLoading(true)
-    setSummaries(null)
+  
+    setLoading(true);
+    setSummaries(null);
     try {
-      const response = await fetch(`http://localhost:8000/arxiv/${arxivId}`)
+      const response = await fetch(`/api/arxiv/${arxivId}`);
       if (!response.ok) {
-        throw new Error(`Failed to fetch paper: ${response.statusText}`)
+        throw new Error(`Failed to fetch paper: ${response.statusText}`);
       }
-      const data = await response.json()
-      setSummaries(data)
+      const data = await response.json();
+      
+      setSummaries(data);
+      setContext(data.overall_summary.context);
+  
     } catch (error) {
-      console.error("Error fetching summaries:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to fetch paper details")
+      console.error("Error fetching summaries:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to fetch paper details");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const endChat = useCallback(async () => {
     if (convId) {
       try {
-        const response = await fetch(`http://localhost:8000/deleteconv/${convId}`, {
+        const response = await fetch(`/api/deleteconv/${convId}`, {
           method: "DELETE",
         })
         if (!response.ok) {
@@ -107,7 +112,7 @@ export default function Home() {
     
     setProcessingPaper(true)
     try {
-      const response = await fetch(`http://localhost:8000/process/${arxivId}/${currentConvId}`, {
+      const response = await fetch(`/api/process/${arxivId}/${currentConvId}`, {
         method: "POST",
       })
       if (!response.ok) {
@@ -155,23 +160,28 @@ export default function Home() {
   }
 
   const fetchAugmenters = async (term: string) => {
-    try {
-      const response = await fetch(`http://localhost:8000/term/${term}`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch term details")
-      }
-      const data: Augmenter[] = await response.json()
-
-      setAugmenterGroups((prevGroups) => [...prevGroups, { term, augmenters: data }])
-
-      setTimeout(() => {
-        augmentersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-      }, 100)
-    } catch (error) {
-      console.error("Error fetching augmenters:", error)
-      toast.error("Failed to fetch additional information for the term")
+    if (!context) {
+      toast.error("Context is missing. Try fetching the paper summary first.");
+      return;
     }
-  }
+  
+    try {
+      const response = await fetch(`/api/term/${term}?context=${encodeURIComponent(context)}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch term details");
+      }
+      const data: Augmenter[] = await response.json();
+  
+      setAugmenterGroups((prevGroups) => [...prevGroups, { term, augmenters: data }]);
+  
+      setTimeout(() => {
+        augmentersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    } catch (error) {
+      console.error("Error fetching augmenters:", error);
+      toast.error("Failed to fetch additional information for the term");
+    }
+  };
 
   return (
     <TooltipProvider>
