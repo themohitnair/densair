@@ -12,8 +12,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from starlette.responses import JSONResponse
 
-from fastapi import FastAPI, Request, Security, HTTPException, Depends
-from fastapi.security import APIKeyHeader
+from fastapi import FastAPI, Request, Header, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import logging.config
 
@@ -21,13 +20,10 @@ logging.config.dictConfig(LOG_CONFIG)
 logger = logging.getLogger(__name__)
 
 
-api_key_header = APIKeyHeader(name="api-key", auto_error=True)
-
-
-def get_api_key(api_key: str = Security(api_key_header)):
-    if api_key != API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API Key")
-    return api_key
+def verify_api_key(x_api_key: str = Header(None)):
+    """Validate API key from request headers."""
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
 
 
 limiter = Limiter(key_func=get_remote_address)
@@ -37,7 +33,7 @@ app.state.limiter = limiter
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://densair.vercel.app", "http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,7 +51,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 @app.get("/arxiv/{arxiv_id}")
 @limiter.limit("5/minute")
 async def process_pdf(
-    request: Request, arxiv_id: str, api_key: str = Depends(get_api_key)
+    request: Request, arxiv_id: str, _: str = Depends(verify_api_key)
 ):
     pdf = ArxivPDF(arxiv_id)
     pdf_bytes = await pdf.fetch_arxiv_pdf_bytes()
@@ -70,7 +66,7 @@ async def process_pdf(
 @app.get("/term/{term}")
 @limiter.limit("50/minute")
 async def get_term_augmenters(
-    request: Request, term: str, context: str, api_key: str = Depends(get_api_key)
+    request: Request, term: str, context: str, _: str = Depends(verify_api_key)
 ):
     searcher = TermSearcher(term, context)
 
@@ -82,7 +78,7 @@ async def get_term_augmenters(
 @app.post("/process/{arxiv_id}/{conv_id}")
 @limiter.limit("2/minute")
 async def process_paper(
-    request: Request, arxiv_id: str, conv_id: str, api_key: str = Depends(get_api_key)
+    request: Request, arxiv_id: str, conv_id: str, _: str = Depends(verify_api_key)
 ):
     v = VecService(arxiv_id, conv_id)
 
@@ -107,7 +103,7 @@ async def query_paper(
     arxiv_id: str,
     conv_id: str,
     query: str,
-    api_key: str = Depends(get_api_key),
+    _: str = Depends(verify_api_key),
 ):
     v = VecService(arxiv_id, conv_id)
 
@@ -123,7 +119,7 @@ async def query_paper(
 
 @app.delete("/deleteconv/{conv_id}")
 async def delete_conversation(
-    request: Request, conv_id: str, api_key: str = Depends(get_api_key)
+    request: Request, conv_id: str, _: str = Depends(verify_api_key)
 ):
     try:
         v = VecService(arxiv_id="dummy", conv_id=conv_id)
