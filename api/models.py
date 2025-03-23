@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List
 from enum import Enum
+from fastapi.responses import FileResponse
 
 
 class FigType(Enum):
@@ -53,3 +54,8 @@ class VectorMetadata(BaseModel):
 class DocumentProcessStatus(BaseModel):
     status: str
     message: str
+
+
+class InVoiceSummary(BaseModel):
+    title: str
+    summary: str

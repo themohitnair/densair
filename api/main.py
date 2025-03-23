@@ -14,7 +14,11 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from starlette.responses import JSONResponse
 
-from fastapi import FastAPI, Request, Header, HTTPException, Depends
+import os
+import tempfile
+
+from fastapi import FastAPI, Request, Header, HTTPException, Depends, BackgroundTasks
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging.config
 
@@ -30,7 +34,7 @@ def verify_api_key(x_api_key: str = Header(None)):
 
 limiter = Limiter(key_func=get_remote_address)
 
-app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI()
 app.state.limiter = limiter
 
 app.add_middleware(
@@ -63,6 +67,36 @@ async def process_pdf(
     summaries = await extractor.get_all_summaries()
 
     return summaries
+
+
+@app.get("/audiosumm/{arxiv_id}")
+@limiter.limit("1/day")
+async def get_aud_summ(
+    request: Request,
+    arxiv_id: str,
+    background_tasks: BackgroundTasks,
+    _: str = Depends(verify_api_key),
+):
+    pdf = ArxivPDF(arxiv_id)
+    pdf_bytes = await pdf.fetch_arxiv_pdf_bytes()
+
+    extractor = Extractor(pdf_bytes)
+    aud_bytes = await extractor.generate_voice_summary()
+
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+        tmp.write(aud_bytes)
+        tmp_path = tmp.name
+
+    background_tasks.add_task(os.remove, tmp_path)
+
+    return FileResponse(
+        tmp_path,
+        media_type="audio/mpeg",
+        filename=f"{arxiv_id}.mp3",
+        headers={
+            "Content-Disposition": 'inline; filename="{}"'.format(f"{arxiv_id}.mp3")
+        },
+    )
 
 
 @app.get("/term/{term}")

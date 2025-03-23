@@ -55,6 +55,8 @@ export default function Home() {
   const [augmenterGroups, setAugmenterGroups] = useState<AugmenterGroup[]>([])
   const [processingPaper, setProcessingPaper] = useState(false)
   const [context, setContext] = useState<string | null>(null)
+  const [audioLoading, setAudioLoading] = useState(false)
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
 
   const augmentersRef = useRef<HTMLDivElement>(null)
 
@@ -140,11 +142,19 @@ export default function Home() {
         () => {
           endChat()
         },
-        10 * 60 * 1000
+        10 * 60 * 1000,
       ) // 10 minutes
     }
-    return () => clearTimeout(timeout)
-  }, [convId, endChat])
+
+    // Cleanup function
+    return () => {
+      clearTimeout(timeout)
+      // Revoke any object URLs to avoid memory leaks
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl)
+      }
+    }
+  }, [convId, endChat, audioUrl])
 
   const handleSheetOpenChange = async (open: boolean) => {
     if (open && !convId) {
@@ -168,7 +178,7 @@ export default function Home() {
     }
 
     // Check if the term already exists in augmenterGroups
-    if (augmenterGroups.some(group => group.term === term)) {
+    if (augmenterGroups.some((group) => group.term === term)) {
       // Scroll to the existing term's section
       augmentersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
       return
@@ -192,6 +202,35 @@ export default function Home() {
     }
   }
 
+  const generateAudioSummary = async () => {
+    if (!arxivId.trim()) {
+      toast.error("No paper loaded")
+      return
+    }
+
+    setAudioLoading(true)
+    setAudioUrl(null)
+
+    try {
+      // Use the audio summary API endpoint
+      const response = await fetch(`/api/audiosumm/${arxivId}`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate audio summary: ${response.statusText}`)
+      }
+
+      // Create a blob URL from the response
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      setAudioUrl(url)
+    } catch (error) {
+      console.error("Error generating audio summary:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to generate audio summary")
+    } finally {
+      setAudioLoading(false)
+    }
+  }
+
   return (
     <TooltipProvider>
       <div className="min-h-screen flex flex-col bg-background">
@@ -200,9 +239,7 @@ export default function Home() {
           <div className="container mx-auto px-4 py-8 md:py-16">
             <div className="max-w-2xl mx-auto text-center mb-8 md:mb-12">
               <h1 className="text-3xl md:text-4xl font-bold mb-4">ArXiv Paper Analysis</h1>
-              <p className="text-lg text-muted-foreground">
-                Simplifying Research Reading and Literature Reviews
-              </p>
+              <p className="text-lg text-muted-foreground">Simplifying Research Reading and Literature Reviews</p>
             </div>
 
             <div className="max-w-xl mx-auto mb-8 flex gap-2">
@@ -229,7 +266,10 @@ export default function Home() {
                   {!arxivId.trim() && <TooltipContent>Please enter an ArXiv ID to start chatting</TooltipContent>}
                 </Tooltip>
 
-                <SheetContent side="right" className="w-screen max-w-screen sm:w-[50vw] sm:max-w-[50vw] overflow-hidden">
+                <SheetContent
+                  side="right"
+                  className="w-screen max-w-screen sm:w-[50vw] sm:max-w-[50vw] overflow-hidden"
+                >
                   <SheetHeader>
                     <SheetTitle>Chat about the paper</SheetTitle>
                   </SheetHeader>
@@ -256,6 +296,30 @@ export default function Home() {
                 <div className="bg-card rounded-lg p-4">
                   <h2 className="text-2xl font-bold mb-4">Overall Summary</h2>
                   <MarkdownRenderer>{summaries.overall_summary.summary}</MarkdownRenderer>
+
+                  <div className="mt-6">
+                    {!audioUrl && !audioLoading && (
+                      <Button onClick={generateAudioSummary} className="mt-2" disabled={audioLoading}>
+                        Generate Audio Summary
+                      </Button>
+                    )}
+
+                    {audioLoading && (
+                      <div className="flex flex-col items-center justify-center py-4">
+                        <LoadingAnimation />
+                        <p className="mt-2 text-sm text-muted-foreground">Generating audio summary...</p>
+                      </div>
+                    )}
+
+                    {audioUrl && (
+                      <div className="mt-4">
+                        <h3 className="text-lg font-medium mb-2">Audio Summary</h3>
+                        <audio controls className="w-full" src={audioUrl}>
+                          Your browser does not support the audio element.
+                        </audio>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="bg-card rounded-lg p-4">
