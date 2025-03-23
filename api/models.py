@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import List
 from enum import Enum
-from fastapi.responses import FileResponse
 
 
 class FigType(Enum):
