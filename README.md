@@ -22,9 +22,7 @@ Start making sense of research papers today!
 
 ## Demo
 
-![](/home/themohitnair/Videos/Screencasts/output.gif)
-
-[![Watch the Demo](https://img.youtube.com/vi/q9tf5TN9OnQ/0.jpg)](https://www.youtube.com/watch?v=q9tf5TN9OnQ)
+![Demo](/home/themohitnair/Videos/Screencasts/output.gif)
 
 ## External APIs used
 
