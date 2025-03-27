@@ -22,6 +22,8 @@ Start making sense of research papers today!
 
 Here's a demo for new users (click on it to be redirected to a YouTube demo):
 
+https://github.com/themohitnair/densair/blob/main/assets/demo.mp4
+
 [![Watch the Demo](https://img.youtube.com/vi/q9tf5TN9OnQ/0.jpg)](https://www.youtube.com/watch?v=q9tf5TN9OnQ)
 
 ## External APIs used
