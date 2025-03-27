@@ -5,7 +5,6 @@ from config import (
     THIRD_PROMPT,
     VOICE_PROMPT,
     GEM_KEY,
-    ELEVENLABS_KEY,
 )
 
 from models import (
@@ -16,7 +15,6 @@ from models import (
     InVoiceSummary,
 )
 
-from elevenlabs import ElevenLabs
 from google import genai
 from google.genai import types
 import logging.config
@@ -38,7 +36,6 @@ class Extractor:
         self.bytes = pdf_bytes
         self.client = genai.Client(api_key=GEM_KEY)
         self.logger = logger
-        self.voice = ElevenLabs(api_key=ELEVENLABS_KEY).text_to_speech
 
     async def sectionwise_explanations(self) -> TermsAndSummaries:
         response = await self.client.aio.models.generate_content(
@@ -111,15 +108,12 @@ class Extractor:
             table_and_figure_summaries=json.loads(figure_summaries),
         )
 
-    async def generate_voice_summary(self) -> str:
+    async def generate_voice_summary(self):
         try:
             response = await self.client.aio.models.generate_content(
                 model="gemini-2.0-flash-lite",
                 contents=[
-                    types.Part.from_bytes(
-                        data=self.bytes,
-                        mime_type="application/pdf",
-                    ),
+                    types.Part.from_bytes(data=self.bytes, mime_type="application/pdf"),
                     VOICE_PROMPT,
                 ],
                 config={
@@ -127,18 +121,13 @@ class Extractor:
                     "response_schema": InVoiceSummary,
                 },
             )
-
             res = json.loads(response.text)
-
-            aud_bytes = self.voice.convert(
-                voice_id="LhgPT1LS4EbAOTFHXOz1",
-                text=res["summary"],
-                output_format="mp3_44100_128",
-                model_id="eleven_flash_v2",
-            )
-
-            return b"".join(aud_bytes)
+            ...
 
         except Exception as e:
-            self.logger.error(f"Podcast generation failed: {str(e)}")
+            self.logger.error(f"Error generating voice summary: {str(e)}")
+            raise
+
+        except Exception as e:
+            self.logger.error(f"Audio generation failed: {str(e)}")
             raise

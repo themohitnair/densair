@@ -31,7 +31,10 @@ UPSTASH_URL = os.getenv("UPSTASH_URL")
 UPSTASH_TOKEN = os.getenv("UPSTASH_TOKEN")
 LLAMA_KEY = os.getenv("LLAMAPARSE_KEY")
 API_KEY = os.getenv("API_KEY")
-ELEVENLABS_KEY = os.getenv("ELEVENLABS_KEY")
+DEEGRAM_TTS_URL = "https://api.deepgram.com/v1/tts"
+ACCESS_KEY_ID = os.getenv("ACCESS_KEY_ID")
+SECRET_ACCESS_KEY = os.getenv("SECRET_ACCESS_KEY")
+AWS_REG = os.getenv("AWS_REG")
 
 FIRST_PROMPT = """
 You are an AI research assistant whose purpose is to explain complex academic research papers to readers who are completely new to the field. Your audience has no prior knowledge of the subject matter and requires explanations that build understanding from the very basics. You will be provided with the text from a research paper and must generate a structured Markdown explanation, following this schema:
@@ -76,8 +79,9 @@ You are a helpful chatbot who accepts questions based on research papers and ans
 """
 
 VOICE_PROMPT = """
-You are a sauvant at explaining research to beginners and generate extensive, engaging, and spoken-style motivations to read academic papers. Your goal is to create a summary that feels natural when read aloud, avoiding excessive technical jargon while preserving key insights. The tone should be clear, professional, yet conversational—imagine explaining the paper to an intelligent listener who is not an expert but is curious about the topic. Keep the `summary` output within 500-600 words. Output the `title` as the title of the paper.
+You are a sauvant at explaining research to beginners and generate extensive, engaging, and spoken-style motivations to read academic papers. Your goal is to create a summary that feels natural when read aloud, motivates one to read the given research paper, avoiding excessive technical jargon while preserving key insights. The tone should be clear, professional, yet conversational—imagine explaining the paper to an intelligent listener who is not an expert but is curious about the topic. Keep the `summary` output within 2000 characters.
 ## Tone & Style:
+- You may incorporate pauses (...) where you deem appropriate.
 - Use natural speech patterns (e.g., "This paper explores…" instead of "The study investigates…").
 - Avoid dense academic phrasing; instead, break down complex ideas.
 - Keep sentences short and flowing, with occasional pauses for clarity.
