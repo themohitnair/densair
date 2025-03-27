@@ -22,7 +22,7 @@ Start making sense of research papers today!
 
 ## Demo
 
-![Demo](/home/themohitnair/Videos/Screencasts/demo.gif)
+![Demo](https://github.com/themohitnair/densair/blob/main/assets/demo.gif)
 
 ## External APIs used
 
