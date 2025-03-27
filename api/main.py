@@ -1,7 +1,6 @@
 from config import LOG_CONFIG, API_KEY
 
 import time
-import traceback
 
 from services.acquire import ArxivPDF
 from services.extract import Extractor
