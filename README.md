@@ -26,22 +26,16 @@ Here's a demo for new users (click on it to be redirected to a YouTube demo):
 
 ## External APIs used
 
-1. Exa Search API - for searching and retrieving resources for Key Term augmenters
-2. Upstash Vector API - for temporary storage of vector embeddings for RAG chat.
-3. Llama Index Parse API - for converting the PDF to LLM-ready markdown for chunking and RAG.
-4. Gemini API - For extensive summaries (overall, sectionwise, and figure/table summaries along with the audio summary)
-5. ElevenLabs API - For generating the audio summary of the paper using the Gemini (spoken-style text) summarization.
-6. Together AI API - To generate embeddings for RAG and to chat with the paper.
+1. [Exa Search API](https://exa.ai/)
+2. [Upstash Vector API](upstash.com/docs/vector/overall/whatisvector)
+3. [LlamaParse](https://docs.llamaindex.ai/en/stable/llama_cloud/llama_parse/)
+4. [Gemini API](https://ai.google.dev/gemini-api/docs)
+5. [Amazon Polly](https://aws.amazon.com/polly/)
+6. [Together AI API](https://www.together.ai/)
 
-## Notable mentions
+## Hosting
 
-1. Docling by IBM [not used in final production deployment] - used earlier for accuracy and versatility; opted out because of RAM constraints.
-2. Chonkie - Used Recursive Chunker without confusing interfaces from LangChain or LlamaIndex.
-3. FastAPI - For the backend API.
-4. SlowAPI - For the rate limiting.
-5. Next.js - For the frontend.
-6. Vercel - For hosting the frontend.
-7. Google Cloud - For hosting the backend.
+The NextJS frontend is hosted on Vercel, and the FastAPI backend is hosted on Google Cloud Run
 
 ## Rate Limits
 
