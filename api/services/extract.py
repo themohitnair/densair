@@ -5,6 +5,8 @@ from config import (
     THIRD_PROMPT,
     VOICE_PROMPT,
     GEM_KEY,
+    AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY,
 )
 
 from models import (
@@ -20,6 +22,7 @@ from google.genai import types
 import logging.config
 import json
 import asyncio
+import boto3
 
 logging.config.dictConfig(LOG_CONFIG)
 logger = logging.getLogger(__name__)
@@ -36,6 +39,12 @@ class Extractor:
         self.bytes = pdf_bytes
         self.client = genai.Client(api_key=GEM_KEY)
         self.logger = logger
+        self.voice = boto3.client(
+            "polly",
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            region_name="ap-south-1",
+        )
 
     async def sectionwise_explanations(self) -> TermsAndSummaries:
         response = await self.client.aio.models.generate_content(
@@ -122,7 +131,23 @@ class Extractor:
                 },
             )
             res = json.loads(response.text)
-            ...
+
+            logger.info("Summary received from Gemini. Forwarding to Polly.")
+
+            summary = res["summary"]
+            title = res["title"]
+
+            audio = self.voice.synthesize_speech(
+                Engine="standard",
+                LanguageCode="en-US",
+                Text=summary,
+                OutputFormat="mp3",
+                VoiceId="Joanna",
+            )
+
+            logger.info("Audio generated.")
+
+            return audio, title
 
         except Exception as e:
             self.logger.error(f"Error generating voice summary: {str(e)}")

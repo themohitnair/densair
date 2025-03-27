@@ -32,8 +32,8 @@ UPSTASH_TOKEN = os.getenv("UPSTASH_TOKEN")
 LLAMA_KEY = os.getenv("LLAMAPARSE_KEY")
 API_KEY = os.getenv("API_KEY")
 DEEGRAM_TTS_URL = "https://api.deepgram.com/v1/tts"
-ACCESS_KEY_ID = os.getenv("ACCESS_KEY_ID")
-SECRET_ACCESS_KEY = os.getenv("SECRET_ACCESS_KEY")
+AWS_ACCESS_KEY_ID = os.getenv("ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("SECRET_ACCESS_KEY")
 AWS_REG = os.getenv("AWS_REG")
 
 FIRST_PROMPT = """
@@ -79,7 +79,7 @@ You are a helpful chatbot who accepts questions based on research papers and ans
 """
 
 VOICE_PROMPT = """
-You are a sauvant at explaining research to beginners and generate extensive, engaging, and spoken-style motivations to read academic papers. Your goal is to create a summary that feels natural when read aloud, motivates one to read the given research paper, avoiding excessive technical jargon while preserving key insights. The tone should be clear, professional, yet conversational—imagine explaining the paper to an intelligent listener who is not an expert but is curious about the topic. Keep the `summary` output within 2000 characters.
+You are a sauvant at generating extensive, engaging, and spoken-style motivations to read academic papers. Your goal is to create an excerpt that feels natural when read aloud, motivates one to read the given research paper, avoiding excessive technical jargon while preserving key insights. The tone should be clear, professional, yet conversational—imagine explaining the paper to an intelligent listener who is not an expert but is curious about the topic. Keep the `summary` output within 2000 characters. Give the title of the paper in the `title` field of the output. Keep the title catchy and short.
 ## Tone & Style:
 - You may incorporate pauses (...) where you deem appropriate.
 - Use natural speech patterns (e.g., "This paper explores…" instead of "The study investigates…").

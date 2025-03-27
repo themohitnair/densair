@@ -28,11 +28,10 @@ export async function GET(
     }
 
     const audioData = await response.arrayBuffer();
-
-    const contentType =
-      response.headers.get('content-type') || 'audio/mpeg';
-    const contentDisposition =
-      response.headers.get('content-disposition') ||
+    
+    const title = response.headers.get('X-Title') || `Summary for ${id}`;
+    const contentType = response.headers.get('content-type') || 'audio/mpeg';
+    const contentDisposition = response.headers.get('content-disposition') || 
       `inline; filename="${id}.mp3"`;
 
     return new Response(audioData, {
@@ -40,6 +39,7 @@ export async function GET(
       headers: {
         'content-type': contentType,
         'content-disposition': contentDisposition,
+        'x-title': title
       },
     });
   } catch (error: unknown) {

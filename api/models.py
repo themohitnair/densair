@@ -58,3 +58,13 @@ class DocumentProcessStatus(BaseModel):
 class InVoiceSummary(BaseModel):
     title: str
     summary: str
+
+
+class RelatedPaper(BaseModel):
+    id: str
+    title: str
+    url: str
+
+
+class RelatedPapers(BaseModel):
+    results: List[RelatedPaper]

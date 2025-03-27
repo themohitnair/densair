@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { MessageCircle, Search } from "lucide-react"
+import { MessageCircle, Search, SparkleIcon } from "lucide-react"
 import { v4 as uuidv4 } from "uuid"
 import { Chat } from "@/components/chat"
 import { LoadingAnimation } from "@/components/loading-animation"
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Header } from "@/components/header"
 import { toast } from "sonner"
 import { LoadingSpinner } from "@/components/loading-spinner"
+import { AudioPlayer } from "@/components/audio-player"
 
 interface FigureSummary {
   figure_num: string
@@ -57,6 +58,7 @@ export default function Home() {
   const [context, setContext] = useState<string | null>(null)
   const [audioLoading, setAudioLoading] = useState(false)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [audioTitle, setAudioTitle] = useState<string>("Audio Summary")
 
   const augmentersRef = useRef<HTMLDivElement>(null)
 
@@ -146,10 +148,8 @@ export default function Home() {
       ) // 10 minutes
     }
 
-    // Cleanup function
     return () => {
       clearTimeout(timeout)
-      // Revoke any object URLs to avoid memory leaks
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl)
       }
@@ -203,33 +203,35 @@ export default function Home() {
   }
 
   const generateAudioSummary = async () => {
-    if (!arxivId.trim()) {
-      toast.error("No paper loaded")
-      return
-    }
-
-    setAudioLoading(true)
-    setAudioUrl(null)
-
-    try {
-      // Use the audio summary API endpoint
-      const response = await fetch(`/api/audiosumm/${arxivId}`)
-
-      if (!response.ok) {
-        throw new Error(`Failed to generate audio summary: ${response.statusText}`)
-      }
-
-      // Create a blob URL from the response
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      setAudioUrl(url)
-    } catch (error) {
-      console.error("Error generating audio summary:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to generate audio summary")
-    } finally {
-      setAudioLoading(false)
-    }
+  if (!arxivId.trim()) {
+    toast.error("No paper loaded")
+    return
   }
+
+  setAudioLoading(true)
+  setAudioUrl(null)
+
+  try {
+    const response = await fetch(`/api/audiosumm/${arxivId}`)
+
+    if (!response.ok) {
+      throw new Error(`Failed to generate audio summary: ${response.statusText}`)
+    }
+
+    const audioTitle = response.headers.get('x-title') || "Audio Summary"
+    
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    setAudioUrl(url)
+    
+    setAudioTitle(audioTitle)
+  } catch (error) {
+    console.error("Error generating audio summary:", error)
+    toast.error(error instanceof Error ? error.message : "Failed to generate audio summary")
+  } finally {
+    setAudioLoading(false)
+  }
+}
 
   return (
     <TooltipProvider>
@@ -276,7 +278,6 @@ export default function Home() {
                   {processingPaper ? (
                     <div className="flex flex-col items-center justify-center h-full">
                       <LoadingSpinner />
-                      <p className="mt-4 text-lg">Processing paper...</p>
                     </div>
                   ) : (
                     <Chat convId={convId} arxivId={arxivId} onEndChat={endChat} />
@@ -293,34 +294,30 @@ export default function Home() {
 
             {summaries && (
               <div className="max-w-6xl mx-auto space-y-8">
-                <div className="bg-card rounded-lg p-4">
-                  <h2 className="text-2xl font-bold mb-4">Overall Summary</h2>
-                  <MarkdownRenderer>{summaries.overall_summary.summary}</MarkdownRenderer>
-
-                  <div className="mt-6">
-                    {!audioUrl && !audioLoading && (
-                      <Button onClick={generateAudioSummary} className="mt-2" disabled={audioLoading}>
-                        Generate Audio Summary
-                      </Button>
-                    )}
-
-                    {audioLoading && (
-                      <div className="flex flex-col items-center justify-center py-4">
-                        <LoadingAnimation />
-                        <p className="mt-2 text-sm text-muted-foreground">Generating audio summary...</p>
-                      </div>
-                    )}
-
-                    {audioUrl && (
-                      <div className="mt-4">
-                        <h3 className="text-lg font-medium mb-2">Audio Summary</h3>
-                        <audio controls className="w-full" src={audioUrl}>
-                          Your browser does not support the audio element.
-                        </audio>
-                      </div>
-                    )}
+                {!audioUrl && !audioLoading && (
+                  <div className="flex justify-center">
+                    <Button 
+                      onClick={generateAudioSummary} 
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white" 
+                      disabled={audioLoading}
+                    >
+                      <SparkleIcon className="mr-2 h-4 w-4" />
+                      Motivation
+                    </Button>
                   </div>
-                </div>
+                )}
+
+                {audioLoading && (
+                  <div className="flex flex-col items-center justify-center py-4">
+                    <LoadingAnimation />
+                  </div>
+                )}
+
+                {audioUrl && (
+                  <div className="bg-card rounded-lg p-4">
+                    <AudioPlayer src={audioUrl} title={audioTitle} />
+                  </div>
+                )}
 
                 <div className="bg-card rounded-lg p-4">
                   <h2 className="text-2xl font-bold mb-4">Key Terms</h2>
@@ -357,6 +354,11 @@ export default function Home() {
                       </ul>
                     </div>
                   ))}
+                </div>
+
+                <div className="bg-card rounded-lg p-4">
+                  <h2 className="text-2xl font-bold mb-4">Overall Summary</h2>
+                  <MarkdownRenderer>{summaries.overall_summary.summary}</MarkdownRenderer>
                 </div>
 
                 <div className="bg-card rounded-lg p-4">

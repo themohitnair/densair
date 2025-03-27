@@ -9,12 +9,13 @@ from services.vector import VecService
 
 from models import DocumentProcessStatus
 
+import io
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from starlette.responses import JSONResponse
 
 from fastapi import FastAPI, Request, Header, HTTPException, Depends
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging.config
 
@@ -78,7 +79,22 @@ async def get_aud_summ(
 
         extractor = Extractor(pdf_bytes)
 
-        ...
+        audio, title = await extractor.generate_voice_summary()
+
+        audio_bytes = audio["AudioStream"].read()
+
+        audio_stream = io.BytesIO(audio_bytes)
+        audio_stream.seek(0)
+
+        return StreamingResponse(
+            audio_stream,
+            media_type="audio/mpeg",
+            headers={
+                "X-Title": title,
+                "Content-Disposition": f'inline; filename="{arxiv_id}.mp3"',
+            },
+        )
+
     except Exception as e:
         logger.error(f"Failed to generate audio summary: {str(e)}")
         return {"error": "Failed to generate audio summary"}
