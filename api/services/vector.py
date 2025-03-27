@@ -17,7 +17,6 @@ from typing import List
 import logging
 
 logging.config.dictConfig(LOG_CONFIG)
-logger = logging.getLogger(__name__)
 
 
 class VecService:
@@ -35,6 +34,7 @@ class VecService:
             return_type="texts",
         )
         self.index = Index(url=UPSTASH_URL, token=UPSTASH_TOKEN)
+        self.logger = logging.getLogger(__name__)
 
     async def chunk_and_embed_pdf(self) -> List[Vector]:
         try:
@@ -58,18 +58,20 @@ class VecService:
             ]
             return vecs
         except Exception as e:
-            logger.error(f"Error in chunk_and_embed_pdf: {e}", exc_info=True)
+            self.logger.error(f"Error in chunk_and_embed_pdf: {e}", exc_info=True)
             return None
 
     def insert_vectors(self, vecs: List[Vector]):
         try:
             self.index.upsert(vectors=vecs, namespace=self.conv_id)
         except Exception as e:
-            logger.error(f"Error in insert_vectors: {e}", exc_info=True)
+            self.logger.error(f"Error in insert_vectors: {e}", exc_info=True)
 
     def query_index(self, query: str, top_k: int = 5) -> List[QueryResult] | None:
         try:
-            logger.info(f"Starting query for: '{query}' in namespace '{self.conv_id}'.")
+            self.logger.info(
+                f"Starting query for: '{query}' in namespace '{self.conv_id}'."
+            )
 
             result = self.client.embeddings.create(
                 model=self.embedding_model,
@@ -83,15 +85,15 @@ class VecService:
                 namespace=self.conv_id,
                 include_metadata=True,
             )
-            logger.info(f"Query completed. Found {len(results)} results.")
+            self.logger.info(f"Query completed. Found {len(results)} results.")
             chunks = [results[i].metadata["chunk"] for i in range(len(results))]
 
             context = ""
             for chunk in chunks:
                 context += chunk + "\n\n"
 
-            logger.info("Context assembled.")
-            logger.info(f"Query: {query} | Context Length: {len(context)}")
+            self.logger.info("Context assembled.")
+            self.logger.info(f"Query: {query} | Context Length: {len(context)}")
 
             response = self.client.chat.completions.create(
                 model="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
@@ -108,7 +110,7 @@ class VecService:
             )
             return response.choices[0].message.content
         except Exception as e:
-            logger.error(f"Error in query_index: {e}", exc_info=True)
+            self.logger.error(f"Error in query_index: {e}", exc_info=True)
             return None
 
     def dispose_vectors_by_namespace(self) -> bool:
@@ -116,7 +118,7 @@ class VecService:
             self.index.delete_namespace(self.conv_id)
             return True
         except Exception as e:
-            logger.error(f"Error deleting namespace {self.conv_id}: {e}")
+            self.logger.error(f"Error deleting namespace {self.conv_id}: {e}")
             return False
 
     def vectors_exist(self) -> bool:
@@ -124,5 +126,5 @@ class VecService:
             result = self.index.fetch(ids=[f"{self.conv_id}_0"], namespace=self.conv_id)
             return len(result) > 0
         except Exception as e:
-            logger.error(f"Error checking vector existence: {e}", exc_info=True)
+            self.logger.error(f"Error checking vector existence: {e}", exc_info=True)
             return False

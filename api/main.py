@@ -1,6 +1,7 @@
 from config import LOG_CONFIG, API_KEY
 
 import time
+import traceback
 
 from services.acquire import ArxivPDF
 from services.extract import Extractor
@@ -24,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 
 def verify_api_key(x_api_key: str = Header(None)):
-    """Validate API key from request headers."""
     if x_api_key != API_KEY:
         raise HTTPException(status_code=403, detail="Invalid API key")
 
@@ -56,33 +56,30 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 async def process_pdf(
     request: Request, arxiv_id: str, _: str = Depends(verify_api_key)
 ):
-    pdf = ArxivPDF(arxiv_id)
-    pdf_bytes = await pdf.fetch_arxiv_pdf_bytes()
-
-    extractor = Extractor(pdf_bytes)
-
-    summaries = await extractor.get_all_summaries()
-
-    return summaries
-
-
-@app.get("/audiosumm/{arxiv_id}")
-@limiter.limit("1/day")
-async def get_aud_summ(
-    request: Request,
-    arxiv_id: str,
-    _: str = Depends(verify_api_key),
-):
     try:
         pdf = ArxivPDF(arxiv_id)
         pdf_bytes = await pdf.fetch_arxiv_pdf_bytes()
 
         extractor = Extractor(pdf_bytes)
+        summaries = await extractor.get_all_summaries()
+        return summaries
+    except Exception as e:
+        logger.error(f"Error processing PDF {arxiv_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process PDF")
 
+
+@app.get("/audiosumm/{arxiv_id}")
+@limiter.limit("1/day")
+async def get_aud_summ(
+    request: Request, arxiv_id: str, _: str = Depends(verify_api_key)
+):
+    try:
+        pdf = ArxivPDF(arxiv_id)
+        pdf_bytes = await pdf.fetch_arxiv_pdf_bytes()
+        extractor = Extractor(pdf_bytes)
         audio, title = await extractor.generate_voice_summary()
 
         audio_bytes = audio["AudioStream"].read()
-
         audio_stream = io.BytesIO(audio_bytes)
         audio_stream.seek(0)
 
@@ -94,10 +91,9 @@ async def get_aud_summ(
                 "Content-Disposition": f'inline; filename="{arxiv_id}.mp3"',
             },
         )
-
     except Exception as e:
-        logger.error(f"Failed to generate audio summary: {str(e)}")
-        return {"error": "Failed to generate audio summary"}
+        logger.error(f"Failed to generate audio summary: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate audio summary")
 
 
 @app.get("/term/{term}")
@@ -105,11 +101,15 @@ async def get_aud_summ(
 async def get_term_augmenters(
     request: Request, term: str, context: str, _: str = Depends(verify_api_key)
 ):
-    searcher = TermSearcher(term, context)
-
-    augmenters = await searcher.get_augmenters()
-
-    return augmenters
+    try:
+        searcher = TermSearcher(term, context)
+        augmenters = await searcher.get_augmenters()
+        return augmenters
+    except Exception as e:
+        logger.error(f"Error retrieving term augmenters: {e}")
+        raise HTTPException(
+            status_code=500, detail="Failed to retrieve term augmenters"
+        )
 
 
 @app.post("/process/{arxiv_id}/{conv_id}")
@@ -117,20 +117,18 @@ async def get_term_augmenters(
 async def process_paper(
     request: Request, arxiv_id: str, conv_id: str, _: str = Depends(verify_api_key)
 ):
-    v = VecService(arxiv_id, conv_id)
-
-    vecs = await v.chunk_and_embed_pdf()
-    if vecs is None:
+    try:
+        v = VecService(arxiv_id, conv_id)
+        vecs = await v.chunk_and_embed_pdf()
+        if vecs is None:
+            raise HTTPException(status_code=500, detail="Failed to process the paper")
+        v.insert_vectors(vecs)
         return DocumentProcessStatus(
-            status="failure",
-            message="Failed to process the paper",
+            status="success", message="Paper processed and ready for queries"
         )
-    v.insert_vectors(vecs)
-
-    return DocumentProcessStatus(
-        status="success",
-        message="Paper processed and ready for queries",
-    )
+    except Exception as e:
+        logger.error(f"Error processing paper {arxiv_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @app.get("/query/{arxiv_id}/{conv_id}")
@@ -142,42 +140,39 @@ async def query_paper(
     query: str,
     _: str = Depends(verify_api_key),
 ):
-    v = VecService(arxiv_id, conv_id)
-
-    if not v.vectors_exist():
-        return {"error": "Paper not processed yet. Call /process endpoint first."}
-
-    response = v.query_index(query)
-    if response is None:
-        return {"error": "Failed to retrieve an answer"}
-
-    return {"response": response}
+    try:
+        v = VecService(arxiv_id, conv_id)
+        if not v.vectors_exist():
+            raise HTTPException(
+                status_code=400,
+                detail="Paper not processed yet. Call /process endpoint first.",
+            )
+        response = v.query_index(query)
+        if response is None:
+            raise HTTPException(status_code=500, detail="Failed to retrieve an answer")
+        return {"response": response}
+    except Exception as e:
+        logger.error(f"Error querying paper {arxiv_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @app.delete("/deleteconv/{conv_id}")
 async def delete_conversation(conv_id: str, _: str = Depends(verify_api_key)):
     try:
         v = VecService(arxiv_id="dummy", conv_id=conv_id)
-
         if not v.vectors_exist():
             logger.info(f"Namespace {conv_id} doesn't exist, skipping deletion")
             return {"status": "success", "message": "No vectors to delete"}
-
         success = v.dispose_vectors_by_namespace()
-
         time.sleep(0.01)
-
-        return {
-            "status": "success" if success else "error",
-            "message": (
-                "Vectors deleted"
-                if success
-                else "Deletion attempted but may not have completed"
-            ),
-        }
+        if not success:
+            raise HTTPException(
+                status_code=500, detail="Deletion attempted but may not have completed"
+            )
+        return {"status": "success", "message": "Vectors deleted"}
     except Exception as e:
         logger.error(f"Critical error deleting {conv_id}: {e}")
-        return {"status": "error", "message": str(e)}
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 if __name__ == "__main__":
