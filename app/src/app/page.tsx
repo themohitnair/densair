@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { MessageCircle, Search, SparkleIcon } from "lucide-react"
+import { MessageCircle, Search, SparkleIcon, Copy } from "lucide-react"
 import { v4 as uuidv4 } from "uuid"
 import { Chat } from "@/components/chat"
 import { LoadingAnimation } from "@/components/loading-animation"
@@ -15,6 +15,20 @@ import { Header } from "@/components/header"
 import { toast } from "sonner"
 import { LoadingSpinner } from "@/components/loading-spinner"
 import { AudioPlayer } from "@/components/audio-player"
+
+const CopyButton = ({ content, label = "Copy" }: { content: string; label?: string }) => {
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content)
+    toast.success("Copied to clipboard")
+  }
+
+  return (
+    <Button variant="outline" size="sm" onClick={handleCopy} className="ml-2">
+      <Copy className="h-4 w-4 mr-1" />
+      {label}
+    </Button>
+  )
+}
 
 interface FigureSummary {
   figure_num: string
@@ -203,35 +217,35 @@ export default function Home() {
   }
 
   const generateAudioSummary = async () => {
-  if (!arxivId.trim()) {
-    toast.error("No paper loaded")
-    return
-  }
-
-  setAudioLoading(true)
-  setAudioUrl(null)
-
-  try {
-    const response = await fetch(`/api/audiosumm/${arxivId}`)
-
-    if (!response.ok) {
-      throw new Error(`Failed to generate audio summary: ${response.statusText}`)
+    if (!arxivId.trim()) {
+      toast.error("No paper loaded")
+      return
     }
 
-    const audioTitle = response.headers.get('x-title') || "Audio Summary"
-    
-    const blob = await response.blob()
-    const url = URL.createObjectURL(blob)
-    setAudioUrl(url)
-    
-    setAudioTitle(audioTitle)
-  } catch (error) {
-    console.error("Error generating audio summary:", error)
-    toast.error(error instanceof Error ? error.message : "Failed to generate audio summary")
-  } finally {
-    setAudioLoading(false)
+    setAudioLoading(true)
+    setAudioUrl(null)
+
+    try {
+      const response = await fetch(`/api/audiosumm/${arxivId}`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate audio summary: ${response.statusText}`)
+      }
+
+      const audioTitle = response.headers.get("x-title") || "Audio Summary"
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      setAudioUrl(url)
+
+      setAudioTitle(audioTitle)
+    } catch (error) {
+      console.error("Error generating audio summary:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to generate audio summary")
+    } finally {
+      setAudioLoading(false)
+    }
   }
-}
 
   return (
     <TooltipProvider>
@@ -296,9 +310,9 @@ export default function Home() {
               <div className="max-w-6xl mx-auto space-y-8">
                 {!audioUrl && !audioLoading && (
                   <div className="flex justify-center">
-                    <Button 
-                      onClick={generateAudioSummary} 
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white" 
+                    <Button
+                      onClick={generateAudioSummary}
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
                       disabled={audioLoading}
                     >
                       <SparkleIcon className="mr-2 h-4 w-4" />
@@ -320,7 +334,10 @@ export default function Home() {
                 )}
 
                 <div className="bg-card rounded-lg p-4">
-                  <h2 className="text-2xl font-bold mb-4">Key Terms</h2>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">Key Terms</h2>
+                    <CopyButton content={summaries.terms_and_summaries.key_terms.join(", ")} label="Copy All" />
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {summaries.terms_and_summaries.key_terms.map((term, index) => (
                       <Badge
@@ -357,32 +374,55 @@ export default function Home() {
                 </div>
 
                 <div className="bg-card rounded-lg p-4">
-                  <h2 className="text-2xl font-bold mb-4">Overall Summary</h2>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">Overall Summary</h2>
+                    <CopyButton content={summaries.overall_summary.summary} />
+                  </div>
                   <MarkdownRenderer>{summaries.overall_summary.summary}</MarkdownRenderer>
                 </div>
 
                 <div className="bg-card rounded-lg p-4">
-                  <h2 className="text-2xl font-bold mb-4">Abstract</h2>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">Abstract</h2>
+                    <CopyButton content={summaries.terms_and_summaries.abs_explanation} />
+                  </div>
                   <MarkdownRenderer>{summaries.terms_and_summaries.abs_explanation}</MarkdownRenderer>
                 </div>
 
                 <div className="bg-card rounded-lg p-4">
-                  <h2 className="text-2xl font-bold mb-4">Methodology</h2>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">Methodology</h2>
+                    <CopyButton content={summaries.terms_and_summaries.meth_explanation} />
+                  </div>
                   <MarkdownRenderer>{summaries.terms_and_summaries.meth_explanation}</MarkdownRenderer>
                 </div>
 
                 <div className="bg-card rounded-lg p-4">
-                  <h2 className="text-2xl font-bold mb-4">Conclusions</h2>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">Conclusions</h2>
+                    <CopyButton content={summaries.terms_and_summaries.conc_explanation} />
+                  </div>
                   <MarkdownRenderer>{summaries.terms_and_summaries.conc_explanation}</MarkdownRenderer>
                 </div>
 
                 {summaries.table_and_figure_summaries.table_and_figure_summaries.length > 0 && (
                   <div className="bg-card rounded-lg p-4">
-                    <h2 className="text-2xl font-bold mb-4">Figures and Tables</h2>
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-2xl font-bold">Figures and Tables</h2>
+                      <CopyButton
+                        content={summaries.table_and_figure_summaries.table_and_figure_summaries
+                          .map((fig) => `## ${fig.figure_num}\n\n${fig.figure_summary}`)
+                          .join("\n\n")}
+                        label="Copy All"
+                      />
+                    </div>
                     <div className="space-y-4">
                       {summaries.table_and_figure_summaries.table_and_figure_summaries.map((fig) => (
                         <div key={fig.figure_num} className="border-l-4 border-primary pl-4">
-                          <h3 className="font-semibold mb-2">{fig.figure_num}</h3>
+                          <div className="flex justify-between items-center mb-2">
+                            <h3 className="font-semibold">{fig.figure_num}</h3>
+                            <CopyButton content={`## ${fig.figure_num}\n\n${fig.figure_summary}`} />
+                          </div>
                           <MarkdownRenderer>{fig.figure_summary}</MarkdownRenderer>
                         </div>
                       ))}
