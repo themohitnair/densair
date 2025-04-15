@@ -127,7 +127,7 @@ class Extractor:
 
     async def generate_voice_summary(self):
         try:
-            response_text = self._generate_content(VOICE_PROMPT, InVoiceSummary)
+            response_text = await self._generate_content(VOICE_PROMPT, InVoiceSummary)
             res = json.loads(response_text)
 
             self.logger.info("Summary received from Gemini. Forwarding to Polly.")
