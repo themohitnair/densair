@@ -140,7 +140,7 @@ class Extractor:
                 LanguageCode="en-US",
                 Text=summary,
                 OutputFormat="mp3",
-                VoiceId="Joanna",
+                VoiceId="Danielle",
             )
 
             self.logger.info("Audio generated.")
