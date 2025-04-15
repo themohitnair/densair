@@ -44,6 +44,7 @@ app.add_middleware(
 
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    logger.warning(f"Rate limit exceeded: {request.client.host}")
     return JSONResponse(
         status_code=429,
         content={"error": "Rate limit exceeded. Please try again later."},

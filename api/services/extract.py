@@ -34,8 +34,13 @@ class Extractor:
         model_name: str = "gemini-2.0-flash-lite",
     ):
         self.bytes = pdf_bytes
+        self.model_name = model_name
         self.client = genai.Client(api_key=GEM_KEY)
         self.logger = logging.getLogger(__name__)
+        self._polly_client = None
+        self._pdf_part = types.Part.from_bytes(
+            data=self.bytes, mime_type="application/pdf"
+        )
         self.voice = boto3.client(
             "polly",
             aws_access_key_id=AWS_ACCESS_KEY_ID,
@@ -43,83 +48,72 @@ class Extractor:
             region_name="ap-south-1",
         )
 
-    async def sectionwise_explanations(self) -> TermsAndSummaries:
+    @property
+    def polly_client(self):
+        if self._polly_client is None:
+            self._polly_client = boto3.client(
+                "polly",
+                aws_access_key_id=AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                region_name="ap-south-1",
+            )
+        return self._polly_client
+
+    async def _generate_content(self, prompt, response_schema):
         try:
             response = await self.client.aio.models.generate_content(
-                model="gemini-2.0-flash-lite",
-                contents=[
-                    types.Part.from_bytes(
-                        data=self.bytes,
-                        mime_type="application/pdf",
-                    ),
-                    FIRST_PROMPT,
-                ],
+                model=self.model_name,
+                contents=[self._pdf_part, prompt],
                 config={
                     "response_mime_type": "application/json",
-                    "response_schema": TermsAndSummaries,
+                    "response_schema": response_schema,
                 },
             )
-            self.logger.info("Sectionwise explanations received.")
             return response.text
+
+        except Exception as e:
+            self.logger.error(f"Error generating content with {prompt[:30]}...: {e}")
+
+    async def sectionwise_explanations(self) -> TermsAndSummaries:
+        try:
+            response = await self._generate_content(FIRST_PROMPT, TermsAndSummaries)
+            self.logger.info("Sectionwise explanations received.")
+            return response
         except Exception as e:
             self.logger.error(f"Error in generarting sectionwise explanations: {e}")
-            raise
 
     async def figure_summaries(self) -> FigureSummaries:
         try:
-            response = await self.client.aio.models.generate_content(
-                model="gemini-2.0-flash-lite",
-                contents=[
-                    types.Part.from_bytes(
-                        data=self.bytes,
-                        mime_type="application/pdf",
-                    ),
-                    SECOND_PROMPT,
-                ],
-                config={
-                    "response_mime_type": "application/json",
-                    "response_schema": FigureSummaries,
-                },
-            )
+            response = await self._generate_content(SECOND_PROMPT, FigureSummaries)
             self.logger.info("Image summaries received.")
-            return response.text
+            return response
         except Exception as e:
-            self.logger.error(f"Error in overall_explanation: {e}")
-            raise
+            self.logger.error(f"Error in generating figure summaries: {e}")
 
     async def overall_explanation(self) -> OverallSummary:
         try:
-            response = await self.client.aio.models.generate_content(
-                model="gemini-2.0-flash-lite",
-                contents=[
-                    types.Part.from_bytes(
-                        data=self.bytes,
-                        mime_type="application/pdf",
-                    ),
-                    THIRD_PROMPT,
-                ],
-                config={
-                    "response_mime_type": "application/json",
-                    "response_schema": OverallSummary,
-                },
-            )
+            response = await self._generate_content(THIRD_PROMPT, OverallSummary)
             self.logger.info("Overall explanation received.")
-            return response.text
+            return response
         except Exception as e:
-            self.logger.error(f"Error in generating figure summaries: {e}")
-            raise
+            self.logger.error(f"Error in generating overall summary: {e}")
 
     async def get_all_summaries(self) -> EndResponse:
         try:
-            (
-                overall_summary,
-                sectionwise_explanations,
-                figure_summaries,
-            ) = await asyncio.gather(
+            tasks = [
                 self.overall_explanation(),
                 self.sectionwise_explanations(),
                 self.figure_summaries(),
-            )
+            ]
+
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    self.logger.error(f"Task {i} failed: {result}")
+                    raise result
+
+            overall_summary, sectionwise_explanations, figure_summaries = results
 
             self.logger.info("Combined all summaries into JSON.")
 
@@ -130,22 +124,11 @@ class Extractor:
             )
         except Exception as e:
             self.logger.error(f"Error in combining summaries: {e}")
-            raise
 
     async def generate_voice_summary(self):
         try:
-            response = await self.client.aio.models.generate_content(
-                model="gemini-2.0-flash-lite",
-                contents=[
-                    types.Part.from_bytes(data=self.bytes, mime_type="application/pdf"),
-                    VOICE_PROMPT,
-                ],
-                config={
-                    "response_mime_type": "application/json",
-                    "response_schema": InVoiceSummary,
-                },
-            )
-            res = json.loads(response.text)
+            response_text = self._generate_content(VOICE_PROMPT, InVoiceSummary)
+            res = json.loads(response_text)
 
             self.logger.info("Summary received from Gemini. Forwarding to Polly.")
 
@@ -153,7 +136,7 @@ class Extractor:
             title = res["title"]
 
             audio = self.voice.synthesize_speech(
-                Engine="standard",
+                Engine="neural",
                 LanguageCode="en-US",
                 Text=summary,
                 OutputFormat="mp3",
@@ -166,4 +149,3 @@ class Extractor:
 
         except Exception as e:
             self.logger.error(f"Error generating voice summary: {str(e)}")
-            raise

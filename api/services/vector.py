@@ -21,6 +21,7 @@ logging.config.dictConfig(LOG_CONFIG)
 
 class VecService:
     def __init__(self, arxiv_id: str, conv_id: str):
+        self.arxiv_id = arxiv_id
         self.conv_id = conv_id
         self.model = "sentence-transformers/all-MiniLM-L6-v2"
         self.embedding_model = "BAAI/bge-base-en-v1.5"
