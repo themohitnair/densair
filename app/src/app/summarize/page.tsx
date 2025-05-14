@@ -1,5 +1,6 @@
-// app/src/app/summarize/page.tsx
 "use client"
+
+export const dynamic = "force-dynamic"
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { toast } from "sonner"
