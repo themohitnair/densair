@@ -1,6 +1,8 @@
 // app/src/app/feed/page.tsx
 "use client"
 
+export const dynamic = "force-dynamic"
+
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { toast } from "sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
