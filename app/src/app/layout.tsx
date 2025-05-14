@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Footer } from "@/components/footer";
 import { Analytics } from "@vercel/analytics/react"
-
+import { Header } from "@/components/header";
+import { AuthProvider } from "@/components/session-provider";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,11 +20,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <AuthProvider>
       <body className={inter.className}>
+        <Header />
         {children}
         <Analytics />
-        <Footer/>
       </body>
+      </AuthProvider>
     </html>
   );
 }

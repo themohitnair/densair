@@ -7,6 +7,7 @@ from config import (
     GEM_KEY,
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
+    GEM_MODEL,
 )
 
 from models import (
@@ -31,7 +32,7 @@ class Extractor:
     def __init__(
         self,
         pdf_bytes: bytes,
-        model_name: str = "gemini-2.0-flash-lite",
+        model_name: str = GEM_MODEL,
     ):
         self.bytes = pdf_bytes
         self.model_name = model_name

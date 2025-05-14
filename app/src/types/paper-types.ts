@@ -28,3 +28,17 @@ export interface AugmenterGroup {
   term: string
   augmenters: Augmenter[]
 }
+
+export interface PaperMetadata {
+  paper_id: string;
+  categories: string[];
+  authors: string[];
+  title: string;
+  date_updated: string;
+  pdf_url?: string;
+}
+
+export interface SearchResult {
+  distance?: number
+  metadata: PaperMetadata
+}

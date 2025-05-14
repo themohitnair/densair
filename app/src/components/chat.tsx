@@ -1,128 +1,159 @@
+// components/chat.tsx
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+import { SendIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Card } from "@/components/ui/card"
-import { toast } from "sonner"
-import MarkdownRenderer from "@/components/markdown-renderer"
-import { LoadingSpinner } from "@/components/loading-spinner"
+import { Textarea } from "@/components/ui/textarea"
+// ← import your skeleton
+import { LoadingAnimation } from "./loading-animation"
+import MarkdownRenderer from "./markdown-renderer"
 
-export interface ChatProps {
-  convId: string
-  arxivId: string
-  onEndChat: () => void
-}
-
-export interface Message {
-  role: "user" | "assistant"
+type Message = {
+  id: string
   content: string
+  role: "user" | "assistant"
+  timestamp: Date
 }
 
-export function Chat({ convId, arxivId, onEndChat }: ChatProps) {
+interface ChatProps {
+  arxivId: string
+  stickToBottom?: boolean
+}
+
+export function Chat({ arxivId, stickToBottom = false }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [inputValue, setInputValue] = useState("")
+  const [isWaiting, setIsWaiting] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || !arxivId || !convId) return
+  // auto-scroll on new message or skeleton
+  useEffect(() => {
+    if (stickToBottom && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [messages, isWaiting, stickToBottom])
 
-    const userMessage = input.trim()
-    setInput("")
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }])
-    setLoading(true)
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || isWaiting) return
 
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: inputValue,
+      role: "user",
+      timestamp: new Date(),
+    }
+    setMessages((prev) => [...prev, userMessage])
+    setInputValue("")
+    setIsWaiting(true)
 
     try {
-      const queryResponse = await fetch(`/api/query/${arxivId}/${convId}?query=${encodeURIComponent(userMessage)}`)
+      const res = await fetch(`/api/query/${arxivId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: userMessage.content }),
+        cache: "no-store",
+      })
+      if (!res.ok) throw new Error("Upstream error")
 
-      if (!queryResponse.ok) {
-        throw new Error("Failed to get response from the server")
+      const { answer } = await res.json()
+      const assistantMessage: Message = {
+        id: Date.now().toString(),
+        content: answer ?? "Sorry, I couldn’t find an answer.",
+        role: "assistant",
+        timestamp: new Date(),
       }
-
-      const queryData = await queryResponse.json()
-
-      if (queryData.error) {
-        throw new Error(queryData.error)
+      setMessages((prev) => [...prev, assistantMessage])
+    } catch (err) {
+      console.error(err)
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        content: "There was an error. Please try again.",
+        role: "assistant",
+        timestamp: new Date(),
       }
-
-      if (queryData.response) {
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: queryData.response },
-        ])
-      } else {
-        throw new Error("Received empty response from server")
-      }
-    } catch (error) {
-      console.error("Error in chat:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to get response")
-      setMessages((prev) => [
-        ...prev,
-        { 
-          role: "assistant",
-          content: "I apologize, but I encountered an error processing your request. Please try again."
-        },
-      ])
+      setMessages((prev) => [...prev, errorMessage])
     } finally {
-      setLoading(false)
+      setIsWaiting(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
     }
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-[calc(100vh-12rem)]">
-          <div className="p-4 space-y-4">
-            {messages.map((message, index) => (
-              <Card
-                key={index}
-                className={`p-4 ${
-                  message.role === "assistant"
-                    ? "bg-secondary"
-                    : "bg-primary text-primary-foreground"
+    <div className="flex flex-col h-full w-full max-w-5xl mx-auto">
+      {/* 1) Message list */}
+      <div className="flex-1 overflow-y-auto p-4 pb-[6rem]">
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center p-8">
+            <h3 className="text-lg font-medium mb-2">
+              Ask questions about this paper
+            </h3>
+            <p className="text-muted-foreground max-w-md">
+              I will answer based on the arXiv paper I am given.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* render past messages */}
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${
+                  msg.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                {message.role === "assistant" ? (
-                  <MarkdownRenderer>{message.content}</MarkdownRenderer>
-                ) : (
-                  message.content
-                )}
-              </Card>
-            ))}
-            {loading && (
-              <Card className="p-4 bg-secondary">
-                <div className="flex items-center gap-2">
-                  <LoadingSpinner />
-                  <span>Thinking...</span>
+                <div
+                  className={`max-w-lg break-words rounded-lg px-4 ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                  }`}
+                >
+                  <MarkdownRenderer content={msg.content} />
                 </div>
-              </Card>
+              </div>
+            ))}
+
+            {/* skeleton while waiting for assistant reply */}
+            {isWaiting && (
+              <div className="flex justify-start">
+                <LoadingAnimation className="max-w-lg mb-4" />
+              </div>
             )}
+
+            {/* anchor for auto-scroll */}
+            <div ref={messagesEndRef} />
           </div>
-        </ScrollArea>
+        )}
       </div>
 
-      <div className="border-t mt-auto">
-        <form onSubmit={handleSubmit} className="p-4">
-          <div className="flex gap-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about the paper..."
-              disabled={loading}
-              className="flex-1"
-            />
-            <Button type="submit" disabled={loading}>
-              Send
-            </Button>
-          </div>
-        </form>
-
-        <Button variant="destructive" className="mx-4 mb-4" onClick={onEndChat}>
-          End Chat
-        </Button>
+      {/* 2) Sticky input bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
+        <div className="mx-auto w-full max-w-5xl relative">
+          <Textarea
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type your question…"
+            rows={2}
+            className="pr-12"
+            disabled={isWaiting}
+          />
+          <Button
+            size="icon"
+            className="absolute right-2 bottom-2"
+            onClick={handleSendMessage}
+            disabled={!inputValue.trim() || isWaiting}
+          >
+            <SendIcon className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   )

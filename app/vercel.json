@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "app/api/process/**/*.ts": {
+      "maxDuration": 300
+    },
+    "app/api/query/**/*.ts": {
+      "maxDuration": 30
+    },
+    "app/api/status/**/*.ts": {
+      "maxDuration": 10
+    }
+  }
+}

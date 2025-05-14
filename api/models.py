@@ -1,6 +1,25 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from enum import Enum
+
+
+class ArxivDomains(str, Enum):
+    CS = "cs"
+    ECON = "econ"
+    EESS = "eess"
+    MATH = "math"
+    ASTRO_PH = "astro-ph"
+    COND_MAT = "cond-mat"
+    GR_QC = "gr-qc"
+    HEP = "hep"
+    MATH_PH = "math-ph"
+    NUCL = "nucl"
+    QUANT_PH = "quant-ph"
+    PHYSICS = "physics"
+    Q_BIO = "q-bio"
+    Q_FIN = "q-fin"
+    STAT = "stat"
+    NLIN = "nlin"
 
 
 class FigType(Enum):
@@ -60,11 +79,19 @@ class InVoiceSummary(BaseModel):
     summary: str
 
 
-class RelatedPaper(BaseModel):
-    id: str
+class PaperMetadata(BaseModel):
+    paper_id: str
+    categories: List[str]
+    authors: List[str]
     title: str
-    url: str
+    date_updated: str
 
 
-class RelatedPapers(BaseModel):
-    results: List[RelatedPaper]
+class SearchResult(BaseModel):
+    distance: Optional[float] = None
+    metadata: PaperMetadata
+
+
+class QueryRequest(BaseModel):
+    query: str
+    top_k: int = 5

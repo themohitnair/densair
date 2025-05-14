@@ -15,7 +15,7 @@ class ArxivPDF:
     def __init__(self, arxiv_id: str):
         self.arxiv_url = f"https://arxiv.org/pdf/{arxiv_id}"
         self.llama_parser = LlamaParse(
-            api_key=LLAMA_KEY, result_type="markdown", verbose=False
+            api_key=LLAMA_KEY, result_type="markdown", verbose=False, num_workers=5
         )
         self.logger = logging.getLogger(__name__)
         self._session = None
@@ -104,7 +104,10 @@ class ArxivPDF:
             self.logger.info(f"Parsing PDF from {self.arxiv_url} with LlamaParse")
 
             try:
-                documents = await self.llama_parser.aload_data(temp_file_path)
+                documents = await asyncio.wait_for(
+                    self.llama_parser.aload_data(temp_file_path),
+                    timeout=120.0,
+                )
             except Exception as e:
                 self.logger.error(f"Unexpected LlamaParse error: {e}")
                 return None
@@ -133,6 +136,9 @@ class ArxivPDF:
                         f"Failed to delete temporary file {temp_file_path}: {e}"
                     )
 
-    def __del__(self):
-        if self._session:
-            asyncio.create_task(self.close())
+    async def __aenter__(self) -> "ArxivPDF":
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        if self._session and not self._session.closed:
+            await self._session.close()

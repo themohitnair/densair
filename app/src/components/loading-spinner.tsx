@@ -1,7 +1,21 @@
-export function LoadingSpinner() {
+import { Spinner } from "@/components/ui/spinner"
+
+interface LoadingSpinnerProps {
+  size?: "xs" | "sm" | "md" | "lg" | "xl"
+  variant?: "default" | "secondary" | "destructive" | "muted" | "accent"
+  showText?: boolean
+  text?: string
+}
+
+export function LoadingSpinner({
+  size = "sm",
+  variant = "default",
+  showText = false,
+  text = "Loading...",
+}: LoadingSpinnerProps) {
   return (
-    <div className="flex items-center justify-center">
-      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-    </div>
+    <Spinner size={size} variant={variant}>
+      {showText && <span className="text-sm">{text}</span>}
+    </Spinner>
   )
 }
