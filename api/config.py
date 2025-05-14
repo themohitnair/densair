@@ -26,7 +26,6 @@ load_dotenv()
 
 GEM_KEY = os.getenv("GEMINI_API_KEY")
 EXA_KEY = os.getenv("EXA_API_KEY")
-TOGETHER_KEY = os.getenv("TOGETHER_API_KEY")
 UPSTASH_URL = os.getenv("UPSTASH_URL")
 UPSTASH_TOKEN = os.getenv("UPSTASH_TOKEN")
 LLAMA_KEY = os.getenv("LLAMAPARSE_KEY")
