@@ -437,16 +437,3 @@ async def health_check():
         "active_requests": len(active_requests),
         "timestamp": time.time(),
     }
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(
-        "main:app",
-        host="localhost",
-        port=8000,
-        reload=True,
-        log_level="info",
-        workers=4,
-    )
