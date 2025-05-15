@@ -7,10 +7,9 @@ ENV PYTHONUNBUFFERED=1 \
   PIP_NO_CACHE_DIR=1 \
   PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# 3. Working directory
 WORKDIR /app
 
-# 4. System deps
+# 3. System dependencies
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
   gcc g++ make \
@@ -19,27 +18,24 @@ RUN apt-get update \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
-# 5. Non-root user
+# 4. Install Python deps *as root* so uvicorn lands in /usr/local/bin
+COPY requirements.txt .
+RUN pip install --upgrade pip \
+  && pip install --no-cache-dir -r requirements.txt \
+  && pip install --no-cache-dir uvicorn
+
+# 5. Create and switch to a non-root user
 RUN useradd --create-home appuser
 USER appuser
 
-# 6. Python deps
-COPY --chown=appuser:appuser requirements.txt .
-RUN pip install --upgrade pip \
-  && pip install --no-cache-dir -r requirements.txt \
-  && pip install --no-cache-dir gunicorn uvicorn
-
-# 7. App code
+# 6. Copy application code
 COPY --chown=appuser:appuser . .
 
-# 8. Expose the port Cloud Run uses
+# 7. Informational only: Cloud Run injects $PORT (default 8080)
 EXPOSE 8080
 
-# 9. Start Gunicorn, binding to $PORT (sh –c expands it)
-ENTRYPOINT ["sh","-c"]  
-CMD ["exec gunicorn main:app \
-  --bind 0.0.0.0:${PORT:-8080} \
-  --workers 4 \
-  --worker-class uvicorn.workers.UvicornWorker \
-  --threads 8 \
-  --timeout 0"]
+# 8. Shell-form CMD so $PORT is evaluated at container start
+CMD exec uvicorn main:app \
+  --host 0.0.0.0 \
+  --port ${PORT:-8080} \
+  --workers 4
