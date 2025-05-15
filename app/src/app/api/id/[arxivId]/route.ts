@@ -1,73 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { SearchResult } from '@/types/paper-types'
+import { XMLParser } from 'fast-xml-parser'
 
 export const runtime = 'nodejs'
 
-// Note: params is a Promise<{ arxivId: string }>
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ arxivId: string }> }
 ) {
-  const API_URL = process.env.API_URL
-  const API_KEY = process.env.API_KEY
-
-  if (!API_URL || !API_KEY) {
-    return NextResponse.json(
-      { error: 'Server configuration error' },
-      { status: 500 }
-    )
-  }
-
-  // Await params before destructuring
   const { arxivId } = await params
 
-  // Validate paper ID format
+  // 1) Validate arXiv ID
   if (!/^\d{4}\.\d{4,5}(v\d+)?$/.test(arxivId)) {
     return NextResponse.json(
-      {
-        error:
-          "Invalid arXiv ID format. Expected format: YYMM.NNNNN or YYMM.NNNNNvX",
-      },
+      { error: 'Invalid arXiv ID format' },
       { status: 400 }
     )
   }
 
   try {
-    const response = await fetch(
-      `${API_URL}/id/${encodeURIComponent(arxivId)}`,
-      {
-        headers: { 'x-api-key': API_KEY },
-      }
-    )
-
-    if (response.status === 404) {
+    const feedUrl = `http://export.arxiv.org/api/query?id_list=${encodeURIComponent(
+      arxivId
+    )}`
+    const atomRes = await fetch(feedUrl)
+    if (!atomRes.ok) {
       return NextResponse.json(
-        { error: `Paper with ID '${arxivId}' not found` },
-        { status: 404 }
+        { error: `arXiv API responded ${atomRes.status}` },
+        { status: atomRes.status }
+      )
+    }
+    const atomXml = await atomRes.text()
+
+    const parser = new XMLParser({
+      ignoreAttributes: true,
+      removeNSPrefix: true,
+    })
+    const json = parser.parse(atomXml)
+
+    const entry = Array.isArray(json.feed.entry)
+      ? json.feed.entry[0]
+      : json.feed.entry
+
+    const title = entry?.title?.trim()
+    if (!title) {
+      return NextResponse.json(
+        { error: 'Title not found in arXiv response' },
+        { status: 502 }
       )
     }
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.statusText}`)
-    }
-
-    const data: SearchResult = await response.json()
-
-    // Add a fallback PDF URL if missing
-    const enhancedData = data.metadata.pdf_url
-      ? data
-      : {
-          ...data,
-          metadata: {
-            ...data.metadata,
-            pdf_url: `https://arxiv.org/pdf/${data.metadata.paper_id}.pdf`,
-          },
-        }
-
-    return NextResponse.json(enhancedData)
-  } catch (error: unknown) {
-    const msg =
-      error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return NextResponse.json({ title })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

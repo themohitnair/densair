@@ -18,12 +18,14 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { MessageSquare } from "lucide-react"
 
+type TitleOnly = Pick<PaperMetadata, 'title'>
+
 export default function SummarizePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
   const [arxivId, setArxivId] = useState<string>("")
-  const [metadata, setMetadata] = useState<PaperMetadata | null>(null)
+  const [metadata, setMetadata] = useState<TitleOnly | null>(null)
   const [summaries, setSummaries] = useState<Summaries | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [augmenterGroups, setAugmenterGroups] = useState<AugmenterGroup[]>([])
@@ -52,11 +54,11 @@ export default function SummarizePage() {
       setSummaries(sumData)
       setContext(sumData.overall_summary.context)
 
-      // 2) Fetch metadata (title, authors, etc.)
       const idRes = await fetch(`/api/id/${encodeURIComponent(arxivId)}`)
       if (!idRes.ok) throw new Error(idRes.statusText)
-      const idData = (await idRes.json()) as { metadata: PaperMetadata }
-      setMetadata(idData.metadata)
+
+      const { title } = (await idRes.json()) as { title: string }
+      setMetadata({ title })
     } catch (err) {
       console.error("Error fetching paper data:", err)
       toast.error(err instanceof Error ? err.message : "Failed to fetch paper")
