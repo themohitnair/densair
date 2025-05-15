@@ -42,7 +42,7 @@ class Feed:
         }
         self.logger.debug(f"Searching with params: {params}")
         try:
-            response = await self.client.get("/search", params=params)
+            response = await self.client.get("/search", params=params, timeout=httpx.Timeout(read=60.0))
             response.raise_for_status()
             return [SearchResult(**item) for item in response.json()]
         except httpx.HTTPStatusError as e:
