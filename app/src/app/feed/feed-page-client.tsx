@@ -8,6 +8,7 @@ import { SemanticSearch } from "@/components/semantic-search"
 import type { SearchResult } from "@/types/paper-types"
 import { useSearchParams } from "next/navigation"
 import { convertAbbreviationsToNames } from "@/constants/arxiv"
+import type { SearchFilters } from "@/components/search-filters"
 
 function joinWithAnd(arr: string[]): string {
   if (arr.length === 0) return ""
@@ -22,6 +23,16 @@ export default function FeedPageClient() {
   // Read interests from the URL:
   const urlInterests = useMemo(() => searchParams.getAll("interests"), [searchParams])
   const interestsKey = useMemo(() => urlInterests.join(","), [urlInterests])
+
+  // Read filters from URL
+  const urlFilters = useMemo(() => {
+    return {
+      categories: searchParams.getAll("categories"),
+      categoriesMatchAll: searchParams.get("categories_match_all") === "true",
+      dateFrom: searchParams.get("date_from"),
+      dateTo: searchParams.get("date_to")
+    }
+  }, [searchParams])
 
   const [papers, setPapers] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState<boolean>(true)
@@ -69,12 +80,49 @@ export default function FeedPageClient() {
     []
   )
 
-  // Semantic search with retry/backoff
+  // Build search URL with filters
+  const buildSearchUrl = useCallback((query: string, filters: SearchFilters): string => {
+    const params = new URLSearchParams()
+    
+    if (query) params.append("query", query)
+    if (filters.categories.length > 0) {
+      filters.categories.forEach(cat => params.append("categories", cat))
+    }
+    if (filters.categoriesMatchAll) params.append("categories_match_all", "true")
+    if (filters.dateFrom) params.append("date_from", filters.dateFrom)
+    if (filters.dateTo) params.append("date_to", filters.dateTo)
+    params.append("limit", "20")
+    
+    return `/api/search?${params.toString()}`
+  }, [])
+
+  // Semantic search with retry/backoff and filters
   const handleSearch = useCallback(
-    async (query: string, retry = 0, max = 3): Promise<void> => {
+    async (query: string, filters: SearchFilters, retry = 0, max = 3): Promise<void> => {
       setSearchLoading(true)
       try {
-        const res = await fetch(`/api/search?query=${encodeURIComponent(query)}&limit=20`)
+        // Update URL to make it shareable without triggering navigation
+        const searchUrl = buildSearchUrl(query, filters)
+        const urlParams = new URLSearchParams(window.location.search)
+        
+        urlParams.set("query", query)
+        
+        // Clear existing filter params
+        urlParams.delete("categories")
+        urlParams.delete("categories_match_all")
+        urlParams.delete("date_from")
+        urlParams.delete("date_to")
+        
+        // Add new filter params
+        filters.categories.forEach(cat => urlParams.append("categories", cat))
+        if (filters.categoriesMatchAll) urlParams.set("categories_match_all", "true")
+        if (filters.dateFrom) urlParams.set("date_from", filters.dateFrom)
+        if (filters.dateTo) urlParams.set("date_to", filters.dateTo)
+        
+        // Update URL without navigation
+        window.history.replaceState({}, '', `${window.location.pathname}?${urlParams.toString()}`)
+        
+        const res = await fetch(searchUrl)
 
         if (res.status === 429 && retry < max) {
           const ra = parseInt(res.headers.get("Retry-After") || "60", 10)
@@ -82,7 +130,7 @@ export default function FeedPageClient() {
             toast.warning(`Rate limit exceeded. Retrying in ${ra}s.`)
           }
           const backoff = ra * 1000 * Math.pow(1.5, retry)
-          setTimeout(() => void handleSearch(query, retry + 1, max), backoff)
+          setTimeout(() => void handleSearch(query, filters, retry + 1, max), backoff)
           return
         }
 
@@ -96,7 +144,7 @@ export default function FeedPageClient() {
         setSearchLoading(false)
       }
     },
-    []
+    [buildSearchUrl]
   )
 
   // On mount or when interestsKey/urlInterests changes → load user prefs or URL interests
@@ -137,7 +185,16 @@ export default function FeedPageClient() {
           <p className="text-lg text-muted-foreground mb-6">
             Discover papers based on your interests ({formattedInterests})
           </p>
-          <SemanticSearch onSearch={handleSearch} isLoading={searchLoading} />
+          <SemanticSearch 
+            onSearch={handleSearch} 
+            isLoading={searchLoading}
+            initialFilters={{
+              categories: urlFilters.categories,
+              categoriesMatchAll: urlFilters.categoriesMatchAll,
+              dateFrom: urlFilters.dateFrom,
+              dateTo: urlFilters.dateTo
+            }}
+          />
         </div>
 
         {/* Loading */}
@@ -151,7 +208,7 @@ export default function FeedPageClient() {
         {!loading && !searchLoading && papers.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">
-              No papers found. Try different search terms or interests.
+              No papers found. Try different search terms, interests, or filters.
             </p>
           </div>
         )}

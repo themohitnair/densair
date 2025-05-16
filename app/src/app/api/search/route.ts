@@ -14,37 +14,52 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('query');
   const limit = searchParams.get('limit') || '10';
-  const domain = searchParams.get('domain') || '';
-  const startDate = searchParams.get('start_date') || '';
-  const endDate = searchParams.get('end_date') || '';
+  const categories = searchParams.getAll('categories') || [];
+  const categoriesMatchAll = searchParams.get('categories_match_all') === 'true';
+  const dateFrom = searchParams.get('date_from') || '';
+  const dateTo = searchParams.get('date_to') || '';
 
-  if (!query || query.trim() === '') {
-    return NextResponse.json({ error: 'Query cannot be empty' }, { status: 400 });
+  // Validate required parameters
+  if (!query && categories.length === 0) {
+    return NextResponse.json({ error: 'Either query or categories must be provided' }, { status: 400 });
   }
   
   // Validate limit
   const limitNum = parseInt(limit, 10);
-  if (isNaN(limitNum) || limitNum < 1 || limitNum > 200) {
-    return NextResponse.json({ error: 'Limit must be between 1 and 200' }, { status: 400 });
+  if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+    return NextResponse.json({ error: 'Limit must be between 1 and 100' }, { status: 400 });
   }
   
   // Build query string with all parameters
-  let queryString = `query=${encodeURIComponent(query.trim())}&limit=${limitNum}`;
+  let queryString = '';
   
-  if (domain) {
-    queryString += `&domain=${encodeURIComponent(domain.trim().toLowerCase())}`;
+  if (query) {
+    queryString += `query=${encodeURIComponent(query.trim())}`;
   }
   
-  if (startDate) {
-    queryString += `&start_date=${encodeURIComponent(startDate)}`;
+  queryString += `&limit=${limitNum}`;
+  
+  // Add categories
+  categories.forEach(category => {
+    queryString += `&categories=${encodeURIComponent(category.trim())}`;
+  });
+  
+  // Add categories match all parameter
+  if (categoriesMatchAll) {
+    queryString += '&categories_match_all=true';
   }
   
-  if (endDate) {
-    queryString += `&end_date=${encodeURIComponent(endDate)}`;
+  // Add date filters
+  if (dateFrom) {
+    queryString += `&date_from=${encodeURIComponent(dateFrom)}`;
+  }
+  
+  if (dateTo) {
+    queryString += `&date_to=${encodeURIComponent(dateTo)}`;
   }
 
   try {
-    // Fetch initial results from your backend
+    // Fetch results from your backend
     const response = await fetch(`${API_URL}/search?${queryString}`, {
       headers: { 'x-api-key': API_KEY },
     });
