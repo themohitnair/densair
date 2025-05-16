@@ -47,10 +47,6 @@ jmespath==1.0.1
 joblib==1.5.0
 light-embed==1.0.7
 limits==5.1.0
-llama-cloud==0.1.19
-llama-cloud-services==0.6.22
-llama-index-core==0.12.35
-llama-parse==0.6.22
 markupsafe==3.0.2
 marshmallow==3.26.1
 mpmath==1.3.0
@@ -61,7 +57,6 @@ networkx==3.4.2
 nltk==3.9.1
 numpy==1.26.4
 onnxruntime==1.19.2
-openai==1.78.1
 packaging==25.0
 pillow==11.2.1
 platformdirs==4.3.8
@@ -73,6 +68,7 @@ pyasn1-modules==0.4.2
 pydantic==2.11.4
 pydantic-core==2.33.2
 pymupdf==1.25.5
+pymupdf4llm==0.0.24
 pytest==8.3.5
 pytest-mock==3.14.0
 python-dateutil==2.9.0.post0
