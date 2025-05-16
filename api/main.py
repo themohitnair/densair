@@ -65,8 +65,8 @@ app = FastAPI(
     title="DensAIR API",
     description="API for the DensAIR research paper search engine",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redocs",
+    docs_url=None,
+    redoc_url=None,
     lifespan=lifespan,
 )
 
