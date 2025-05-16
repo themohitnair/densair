@@ -73,7 +73,7 @@ export default function ArxivForm() {
       });
     
       if (res.ok) {
-        window.location.href = "/summarize";
+        window.location.href = "/feed";
       } else {
         setErrorMessage("Failed to save preferences. Please try again.");
         setIsDialogOpen(true);

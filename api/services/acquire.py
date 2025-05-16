@@ -1,4 +1,4 @@
-from config import LOG_CONFIG, LLAMA_KEY
+from config import LOG_CONFIG
 
 import aiohttp
 import asyncio
@@ -6,7 +6,7 @@ import pymupdf
 import logging.config
 import tempfile
 import os
-from llama_parse import LlamaParse
+from pymupdf4llm import to_markdown
 
 logging.config.dictConfig(LOG_CONFIG)
 
@@ -14,9 +14,6 @@ logging.config.dictConfig(LOG_CONFIG)
 class ArxivPDF:
     def __init__(self, arxiv_id: str):
         self.arxiv_url = f"https://arxiv.org/pdf/{arxiv_id}"
-        self.llama_parser = LlamaParse(
-            api_key=LLAMA_KEY, result_type="markdown", verbose=False, num_workers=5
-        )
         self.logger = logging.getLogger(__name__)
         self._session = None
         self._pdf_bytes_cache = None
@@ -101,26 +98,18 @@ class ArxivPDF:
                 temp_file_path = temp_file.name
                 temp_file.write(pdf_bytes)
 
-            self.logger.info(f"Parsing PDF from {self.arxiv_url} with LlamaParse")
+            self.logger.info(f"Parsing PDF from {self.arxiv_url} with pymupdf4llm")
 
             try:
-                documents = await asyncio.wait_for(
-                    self.llama_parser.aload_data(temp_file_path),
-                    timeout=120.0,
-                )
+                # Use pymupdf4llm to extract text as markdown
+                markdown_content = await asyncio.to_thread(to_markdown, temp_file_path)
             except Exception as e:
-                self.logger.error(f"Unexpected LlamaParse error: {e}")
+                self.logger.error(f"Unexpected pymupdf4llm error: {e}")
                 return None
 
-            if not documents:
-                self.logger.error("LlamaParse returned an empty response.")
+            if not markdown_content:
+                self.logger.error("pymupdf4llm returned an empty response.")
                 return None
-
-            markdown_content = (
-                "\n\n".join([str(doc.text) for doc in documents])
-                if isinstance(documents, list)
-                else str(documents.text)
-            )
 
             self.logger.info("PDF successfully converted to markdown.")
             return markdown_content
