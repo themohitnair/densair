@@ -2,10 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { CalendarIcon, X } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { X } from 'lucide-react';
 import { ARXIV_DOMAINS } from "@/constants/arxiv";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -25,18 +23,14 @@ interface SearchFiltersProps {
 
 export function SearchFilters({ filters, onFiltersChange, isLoading }: SearchFiltersProps) {
   const [localFilters, setLocalFilters] = useState<SearchFilters>({...filters});
-  const [fromDate, setFromDate] = useState<Date | undefined>(
-    filters.dateFrom ? new Date(filters.dateFrom) : undefined
-  );
-  const [toDate, setToDate] = useState<Date | undefined>(
-    filters.dateTo ? new Date(filters.dateTo) : undefined
-  );
-
+  const [dateFromInput, setDateFromInput] = useState<string>(filters.dateFrom || '');
+  const [dateToInput, setDateToInput] = useState<string>(filters.dateTo || '');
+  
   // Update local filters when props change
   useEffect(() => {
     setLocalFilters({...filters});
-    setFromDate(filters.dateFrom ? new Date(filters.dateFrom) : undefined);
-    setToDate(filters.dateTo ? new Date(filters.dateTo) : undefined);
+    setDateFromInput(filters.dateFrom || '');
+    setDateToInput(filters.dateTo || '');
   }, [filters]);
 
   const updateFilters = (newFilters: SearchFilters) => {
@@ -54,22 +48,63 @@ export function SearchFilters({ filters, onFiltersChange, isLoading }: SearchFil
     updateFilters(newFilters);
   };
 
-  const handleFromDateChange = (date: Date | undefined) => {
-    setFromDate(date);
-    const newFilters = {
-      ...localFilters,
-      dateFrom: date ? date.toISOString().split('T')[0] : null
-    };
-    updateFilters(newFilters);
+  const formatDateInput = (value: string) => {
+    // Remove any non-digit characters
+    const digits = value.replace(/\D/g, '');
+    
+    // Format with hyphens (YYYY-MM-DD)
+    if (digits.length <= 4) {
+      return digits;
+    } else if (digits.length <= 6) {
+      return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    } else {
+      return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+    }
   };
 
-  const handleToDateChange = (date: Date | undefined) => {
-    setToDate(date);
-    const newFilters = {
-      ...localFilters,
-      dateTo: date ? date.toISOString().split('T')[0] : null
-    };
-    updateFilters(newFilters);
+  const validateDate = (dateString: string): boolean => {
+    // Check if it matches YYYY-MM-DD format and is a valid date
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!regex.test(dateString)) return false;
+    
+    const date = new Date(dateString);
+    return !isNaN(date.getTime());
+  };
+
+  const handleFromDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    const formatted = formatDateInput(inputValue);
+    
+    // Always update the local input state for UI feedback
+    setDateFromInput(formatted);
+    
+    // Only update parent state/URL when we have a complete, valid date
+    // or when the field is completely cleared
+    if (formatted === '' || validateDate(formatted)) {
+      const newFilters = {
+        ...localFilters,
+        dateFrom: formatted || null
+      };
+      updateFilters(newFilters);
+    }
+  };
+
+  const handleToDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    const formatted = formatDateInput(inputValue);
+    
+    // Always update the local input state for UI feedback
+    setDateToInput(formatted);
+    
+    // Only update parent state/URL when we have a complete, valid date
+    // or when the field is completely cleared
+    if (formatted === '' || validateDate(formatted)) {
+      const newFilters = {
+        ...localFilters,
+        dateTo: formatted || null
+      };
+      updateFilters(newFilters);
+    }
   };
 
   const handleClearFilters = () => {
@@ -80,8 +115,8 @@ export function SearchFilters({ filters, onFiltersChange, isLoading }: SearchFil
       dateTo: null
     };
     setLocalFilters(emptyFilters);
-    setFromDate(undefined);
-    setToDate(undefined);
+    setDateFromInput('');
+    setDateToInput('');
     onFiltersChange(emptyFilters);
   };
 
@@ -94,13 +129,13 @@ export function SearchFilters({ filters, onFiltersChange, isLoading }: SearchFil
   };
 
   const handleRemoveDateRange = () => {
-    setFromDate(undefined);
-    setToDate(undefined);
     const newFilters = {
       ...localFilters,
       dateFrom: null,
       dateTo: null
     };
+    setDateFromInput('');
+    setDateToInput('');
     updateFilters(newFilters);
   };
 
@@ -152,10 +187,10 @@ export function SearchFilters({ filters, onFiltersChange, isLoading }: SearchFil
               {(localFilters.dateFrom || localFilters.dateTo) && (
                 <Badge variant="secondary" className="flex items-center gap-1">
                   {localFilters.dateFrom && localFilters.dateTo 
-                    ? `${format(new Date(localFilters.dateFrom), "MMM d, yyyy")} - ${format(new Date(localFilters.dateTo), "MMM d, yyyy")}`
+                    ? `${localFilters.dateFrom} - ${localFilters.dateTo}`
                     : localFilters.dateFrom 
-                      ? `From ${format(new Date(localFilters.dateFrom), "MMM d, yyyy")}`
-                      : `Until ${format(new Date(localFilters.dateTo!), "MMM d, yyyy")}`
+                      ? `From ${localFilters.dateFrom}`
+                      : `Until ${localFilters.dateTo!}`
                   }
                   <button 
                     onClick={handleRemoveDateRange}
@@ -220,53 +255,29 @@ export function SearchFilters({ filters, onFiltersChange, isLoading }: SearchFil
               <AccordionContent className="px-4 pb-4">
                 <div className="space-y-3">
                   <div className="space-y-1">
-                    <Label htmlFor="date-from" className="text-sm">From</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          id="date-from"
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                          disabled={isLoading}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {fromDate ? format(fromDate, "PPP") : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={fromDate}
-                          onSelect={handleFromDateChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Label htmlFor="date-from" className="text-sm">From (YYYY-MM-DD)</Label>
+                    <Input
+                      id="date-from"
+                      placeholder="YYYY-MM-DD"
+                      value={dateFromInput}
+                      onChange={handleFromDateInputChange}
+                      className="font-mono"
+                      disabled={isLoading}
+                      maxLength={10}
+                    />
                   </div>
                   
                   <div className="space-y-1">
-                    <Label htmlFor="date-to" className="text-sm">To</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          id="date-to"
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                          disabled={isLoading}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {toDate ? format(toDate, "PPP") : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={toDate}
-                          onSelect={handleToDateChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Label htmlFor="date-to" className="text-sm">To (YYYY-MM-DD)</Label>
+                    <Input
+                      id="date-to"
+                      placeholder="YYYY-MM-DD"
+                      value={dateToInput}
+                      onChange={handleToDateInputChange}
+                      className="font-mono"
+                      disabled={isLoading}
+                      maxLength={10}
+                    />
                   </div>
                 </div>
               </AccordionContent>
