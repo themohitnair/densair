@@ -87,13 +87,13 @@ export default function ArxivForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="p-6 text-center">
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold text-foreground">
             Just to let us get to know you
           </h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-muted-foreground">
             We use this information to curate a feed of Research Papers for you.
           </p>
         </CardHeader>
@@ -101,7 +101,7 @@ export default function ArxivForm() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* User Type Selection using Select */}
             <div className="space-y-2">
-              <Label htmlFor="userType" className="block text-sm font-medium">
+              <Label htmlFor="userType" className="block text-sm font-medium text-foreground">
                 I am a
               </Label>
               <Select onValueChange={(value) => setUserType(value)}>
@@ -117,7 +117,7 @@ export default function ArxivForm() {
             </div>
             {/* arXiv Domain Multi-Select */}
             <div className="space-y-2">
-              <Label className="block text-sm font-medium">
+              <Label className="block text-sm font-medium text-foreground">
                 I am interested in
               </Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -129,9 +129,9 @@ export default function ArxivForm() {
                       value={domain}
                       checked={domains.includes(domain)}
                       onChange={() => toggleDomain(domain)}
-                      className="h-4 w-4"
+                      className="h-4 w-4 accent-primary"
                     />
-                    <Label htmlFor={domain} className="cursor-pointer text-sm">
+                    <Label htmlFor={domain} className="cursor-pointer text-sm text-foreground">
                       {domain}
                     </Label>
                   </div>
