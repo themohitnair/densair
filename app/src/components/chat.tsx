@@ -137,6 +137,8 @@ export function Chat({ arxivId, stickToBottom = false }: ChatProps) {
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
         <div className="mx-auto w-full max-w-5xl relative">
           <Textarea
+            id="chat-input"
+            name="chat-input"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
