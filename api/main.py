@@ -28,7 +28,6 @@ logging.config.dictConfig(LOG_CONFIG)
 logger = logging.getLogger(__name__)
 
 
-# Cache API key verification results to reduce overhead
 @lru_cache(maxsize=100)
 def _verify_api_key_cached(api_key: str) -> bool:
     return api_key == API_KEY
@@ -44,23 +43,18 @@ def verify_api_key(x_api_key: str = Header(None)):
         raise HTTPException(status_code=403, detail="Invalid API key")
 
 
-# Configure rate limiter with more granular control
 limiter = Limiter(
     key_func=get_remote_address, default_limits=["200/minute"], strategy="fixed-window"
 )
 
 
-# Define lifespan context manager for app startup/shutdown events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize resources
     logger.info("Starting DensAIR API server")
     yield
-    # Shutdown: Clean up resources
     logger.info("Shutting down DensAIR API server")
 
 
-# Create FastAPI app with metadata and lifespan
 app = FastAPI(
     title="DensAIR API",
     description="API for the DensAIR research paper search engine",
@@ -70,10 +64,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add limiter to app state
 app.state.limiter = limiter
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://densair.vercel.app", "http://localhost:3000"],
@@ -82,15 +74,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Track active requests for monitoring
 active_requests: Dict[str, Dict[str, Any]] = {}
 
 
-# Custom exception handlers
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     logger.warning(f"Rate limit exceeded: {request.client.host}")
-    # Default retry after to 60 seconds if not available
     retry_after = getattr(exc, "retry_after", 60)
     return JSONResponse(
         status_code=429,
@@ -115,13 +104,11 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-# Request tracking middleware
 @app.middleware("http")
 async def track_requests(request: Request, call_next):
     request_id = f"{time.time()}-{request.client.host}-{request.url.path}"
     start_time = time.time()
 
-    # Track request
     active_requests[request_id] = {
         "path": request.url.path,
         "method": request.method,
@@ -199,7 +186,6 @@ async def get_aud_summ(
 ):
     """Generate and stream an audio summary for the given paper"""
     try:
-        # Open ArxivPDF as an async context manager
         async with ArxivPDF(arxiv_id) as pdf:
             pdf_bytes = await pdf.fetch_arxiv_pdf_bytes()
 
@@ -308,6 +294,9 @@ async def get_user_feed(
         ..., description="Pass ?interests=cs&interests=math etc."
     ),
     limit: int = Query(100, ge=1, le=200),
+    exploration_ratio: float = Query(
+        0.3, ge=0.0, le=1.0, description="Ratio of exploration content (0.0-1.0)"
+    ),
     _: str = Depends(verify_api_key),
 ):
     start_time = time.time()
@@ -321,22 +310,27 @@ async def get_user_feed(
             status_code=400, detail="Interests contain only empty values"
         )
 
+    if len(interests) < 2:
+        raise HTTPException(
+            status_code=400, detail="At least two different interests must be provided"
+        )
+
     try:
         async with Feed() as feed:
             results = await asyncio.wait_for(
-                feed.by_user_interests(interests, top_k=limit), timeout=15.0
+                feed.get_mixed_feed(user_interests=interests, total_items=limit),
+                timeout=15.0,
             )
             logger.info(
-                f"Feed generated: {len(results)} results for {interests} in {time.time() - start_time:.2f}s"
+                f"Mixed feed generated: {len(results)} results for {interests} in {time.time() - start_time:.2f}s"
             )
-            random.shuffle(results)
             return results
 
     except asyncio.TimeoutError:
-        logger.error(f"Timeout while generating feed for interests: {interests}")
+        logger.error(f"Timeout while generating mixed feed for interests: {interests}")
         raise HTTPException(status_code=408, detail="Feed generation timed out.")
     except Exception as e:
-        logger.error(f"Failed to fetch feed: {e}", exc_info=True)
+        logger.error(f"Failed to fetch mixed feed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to fetch user feed")
 
 
@@ -428,7 +422,6 @@ async def get_paper(paper_id: str):
     return result
 
 
-# Health check endpoint
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""

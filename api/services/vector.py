@@ -43,7 +43,7 @@ class VecService:
         self.index = Index(url=UPSTASH_URL, token=UPSTASH_TOKEN)
         self.logger = logging.getLogger(__name__)
         self.embedding_cache = LRUCache(maxsize=CACHE_SIZE)
-        self.semaphore = asyncio.Semaphore(5)  # Limit concurrent embedding operations
+        self.semaphore = asyncio.Semaphore(5)
 
     async def _embed_text(self, text: str) -> Optional[List[float]]:
         """Embed a single text with caching and error handling"""
@@ -51,34 +51,29 @@ class VecService:
             self.logger.warning("Cannot embed empty text")
             return None
 
-        # Truncate extremely long texts
         if len(text) > 1000:
             self.logger.warning(
                 f"Text too long ({len(text)} chars), truncating to 1000 chars"
             )
             text = text[:1000]
 
-        # Check cache
         if text in self.embedding_cache:
             self.logger.debug("Cache hit for text embedding")
             return self.embedding_cache[text]
 
         try:
             async with self.semaphore:
-                # Run embedding in executor to make it non-blocking
                 loop = asyncio.get_event_loop()
                 embedding_future = loop.run_in_executor(
                     None, lambda: self.embedding_client.encode([text])[0]
                 )
 
-                # Add timeout
                 embedding = await asyncio.wait_for(embedding_future, timeout=10.0)
 
                 if embedding is None or len(embedding) == 0:
                     self.logger.error("Empty embedding vector received")
                     return None
 
-                # Cache the result
                 self.embedding_cache[text] = embedding
                 return embedding
 
@@ -95,16 +90,12 @@ class VecService:
             return []
 
         try:
-            # Try direct batch embedding first
             try:
                 async with self.semaphore:
                     loop = asyncio.get_event_loop()
-                    # Remove the extra list wrapper around texts
                     embedding_future = loop.run_in_executor(
                         None,
-                        lambda: self.embedding_client.encode(
-                            texts
-                        ),  # texts is already a list
+                        lambda: self.embedding_client.encode(texts),
                     )
 
                     embeddings = await asyncio.wait_for(embedding_future, timeout=30.0)
@@ -112,7 +103,6 @@ class VecService:
                         self.logger.info(
                             f"Successfully batch embedded {len(embeddings)} texts"
                         )
-                        # Cache individual embeddings
                         for text, embedding in zip(texts, embeddings):
                             self.embedding_cache[text] = embedding
                         return embeddings
@@ -125,7 +115,6 @@ class VecService:
                     f"Batch embedding failed: {e}, falling back to individual embedding"
                 )
 
-            # Fallback to individual embedding with validation
             valid_embeddings = []
             for text in texts:
                 if not isinstance(text, str) or not text.strip():
@@ -191,7 +180,6 @@ class VecService:
                 f"Starting query for: '{query}' in namespace '{self.arxiv_id}'."
             )
 
-            # Use async embedding with caching
             query_vec = await self._embed_text(query)
 
             if query_vec is None:

@@ -1,5 +1,6 @@
 import httpx
-from typing import Optional, List
+import random
+from typing import List
 import logging.config
 
 from models import SearchResult, ArxivDomains
@@ -13,6 +14,7 @@ class Feed:
         self.base_url = base_url
         self.client = None
         self.logger = logging.getLogger(__name__)
+        self.all_domains = [domain.value for domain in ArxivDomains]
 
     async def __aenter__(self):
         self.client = httpx.AsyncClient(base_url=self.base_url)
@@ -23,110 +25,139 @@ class Feed:
         await self.client.aclose()
         self.logger.debug("Closed HTTP client.")
 
-    async def search_papers_request(
-        self,
-        query: Optional[str] = None,
-        categories: Optional[List[str]] = None,
-        categories_match_all: bool = False,
-        date_from: Optional[str] = None,
-        date_to: Optional[str] = None,
-        limit: int = 10,
+    async def get_mixed_feed(
+        self, user_interests: List[str], total_items: int = 20
     ) -> List[SearchResult]:
-        params = {
-            "query": query,
-            "categories": categories,
-            "categories_match_all": categories_match_all,
-            "date_from": date_from,
-            "date_to": date_to,
-            "limit": limit,
-        }
-        self.logger.debug(f"Searching with params: {params}")
-        try:
-            response = await self.client.get("/search", params=params)
-            response.raise_for_status()
-            return [SearchResult(**item) for item in response.json()]
-        except httpx.HTTPStatusError as e:
-            self.logger.error(
-                f"HTTP status error: {e.response.status_code} - {e.response.text}"
-            )
-        except Exception as e:
-            self.logger.exception(f"Unexpected error in search: {e}")
-        return []
+        """
+        Creates a mixed feed with 70% from user interests and 30% exploration.
+        Uses maximum two requests to the microservice.
 
-    async def _search_seed(
-        self,
-        query: Optional[str] = None,
-        categories: Optional[List[ArxivDomains]] = None,
-        categories_match_all: bool = False,
-        limit: int = 10,
-    ) -> List[SearchResult]:
-        """Seed search using raw query and filters."""
-        params = {
-            "query": query,
-            "categories_match_all": categories_match_all,
-            "limit": limit,
-        }
-        if categories:
-            params["categories"] = categories
+        Args:
+            user_interests: List of user's ArXiv domain interests
+            total_items: Total number of items to return in the feed
 
-        self.logger.debug(f"Sending search request with params: {params}")
+        Returns:
+            List of SearchResult objects representing the mixed feed
+        """
+        self.logger.debug(f"Generating mixed feed for interests: {user_interests}")
 
-        try:
-            response = await self.client.get("/search", params=params)
-            response.raise_for_status()
-            data = response.json()
-            self.logger.info(f"Search returned {len(data)} results")
-            return [SearchResult(**item) for item in data]
-        except httpx.HTTPStatusError as e:
-            self.logger.error(
-                f"HTTP error: {e.response.status_code} - {e.response.text}"
-            )
-        except Exception as e:
-            self.logger.exception(f"Unexpected error during search: {e}")
-        return []
-
-    async def similar_to_title(self, title: str, top_k: int = 5) -> List[SearchResult]:
-        """Papers similar to a given title."""
-        self.logger.debug(f"Searching papers similar to title: '{title}'")
-        return await self._search_seed(query=title, limit=top_k)
-
-    async def by_user_interests(
-        self, interests: List[str], top_k: int = 10
-    ) -> List[SearchResult]:
-        """Search for papers using user’s ArXiv domain interests."""
-        self.logger.debug(f"Searching papers for interests: {interests}")
-        valid_domains = [
-            ArxivDomains(interest)
-            for interest in interests
-            if interest in ArxivDomains.__members__
+        valid_interests = [
+            interest
+            for interest in user_interests
+            if interest in [d.value for d in ArxivDomains]
         ]
-        if not valid_domains:
-            self.logger.warning("No valid ArXiv domains provided in interests.")
-        return await self._search_seed(categories=valid_domains, limit=top_k)
-
-    async def get_paper_by_id(self, paper_id: str) -> Optional[SearchResult]:
-        """
-        Fetch a single paper by its arXiv ID from the microservice.
-        Returns a SearchResult or None if not found / on error.
-        """
-        self.logger.debug(f"Fetching paper by ID: {paper_id}")
-        try:
-            # Call the microservice /id endpoint with the paper_id as a query param
-            response = await self.client.get("/id", params={"id": paper_id})
-            if response.status_code == 404:
-                self.logger.info(f"Paper {paper_id} not found (404)")
-                return None
-            response.raise_for_status()
-            return SearchResult(**response.json())
-        except httpx.HTTPStatusError as e:
-            self.logger.error(
-                f"HTTP error fetching paper {paper_id}: "
-                f"{e.response.status_code} {e.response.text}"
+        if len(valid_interests) < 2:
+            self.logger.warning(
+                f"User has fewer than 2 valid interests: {valid_interests}"
             )
-        except Exception as e:
-            self.logger.exception(f"Unexpected error fetching paper {paper_id}: {e}")
-        return None
+            valid_interests = (
+                random.sample(self.all_domains, 2)
+                if len(valid_interests) == 0
+                else valid_interests
+                + [
+                    random.choice(
+                        [d for d in self.all_domains if d not in valid_interests]
+                    )
+                ]
+            )
+            self.logger.info(f"Using default interests: {valid_interests}")
+
+        interest_count = int(total_items * 0.7)
+        exploration_count = total_items - interest_count
+
+        results = []
+
+        if interest_count > 0:
+            selected_interests = random.sample(
+                valid_interests,
+                k=min(len(valid_interests), random.randint(2, len(valid_interests))),
+            )
+            interest_results = await self._search_seed(
+                categories=[ArxivDomains(interest) for interest in selected_interests],
+                categories_match_all=False,
+                limit=interest_count,
+            )
+            results.extend(interest_results)
+            self.logger.info(
+                f"Retrieved {len(interest_results)} papers from user interests"
+            )
+        if exploration_count > 0:
+            exploration_domains = [
+                d for d in self.all_domains if d not in valid_interests
+            ]
+            if not exploration_domains:
+                exploration_domains = self.all_domains
+
+            selected_exploration = random.sample(
+                exploration_domains,
+                k=min(
+                    len(exploration_domains),
+                    random.randint(1, min(3, len(exploration_domains))),
+                ),
+            )
+
+            exploration_results = await self._search_seed(
+                categories=[ArxivDomains(domain) for domain in selected_exploration],
+                categories_match_all=False,
+                limit=exploration_count,
+            )
+            results.extend(exploration_results)
+            self.logger.info(
+                f"Retrieved {len(exploration_results)} papers for exploration"
+            )
+        random.shuffle(results)
+
+        return results[:total_items]
 
     async def close(self):
         await self.client.aclose()
         self.logger.debug("HTTP client closed.")
+
+    async def _search_seed(
+        self, categories: List[ArxivDomains], categories_match_all: bool, limit: int
+    ) -> List[SearchResult]:
+        """
+        Private method to search for papers based on categories.
+
+        Args:
+            categories: List of ArxivDomains categories to search for
+            categories_match_all: If True, match all categories (AND), otherwise match any (OR)
+            limit: Maximum number of results to return
+
+        Returns:
+            List of SearchResult objects
+        """
+        if not self.client:
+            raise RuntimeError(
+                "HTTP client not initialized. Use 'async with' context manager."
+            )
+
+        self.logger.debug(
+            f"Searching for papers with categories: {[c.value for c in categories]}, match_all={categories_match_all}"
+        )
+
+        category_values = [category.value for category in categories]
+
+        params = {
+            "categories": category_values,
+            "match_all": "true" if categories_match_all else "false",
+            "limit": limit,
+        }
+
+        try:
+            response = await self.client.get("/search", params=params)
+            response.raise_for_status()
+
+            data = response.json()
+            results = [SearchResult(**item) for item in data]
+
+            self.logger.debug(f"Retrieved {len(results)} papers matching the criteria")
+            return results
+        except httpx.HTTPStatusError as e:
+            self.logger.error(
+                f"HTTP error during search: {e.response.status_code} - {e.response.text}"
+            )
+            raise
+        except Exception as e:
+            self.logger.error(f"Error during search: {str(e)}")
+            raise

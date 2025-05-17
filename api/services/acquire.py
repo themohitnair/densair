@@ -101,7 +101,6 @@ class ArxivPDF:
             self.logger.info(f"Parsing PDF from {self.arxiv_url} with pymupdf4llm")
 
             try:
-                # Use pymupdf4llm to extract text as markdown
                 markdown_content = await asyncio.to_thread(to_markdown, temp_file_path)
             except Exception as e:
                 self.logger.error(f"Unexpected pymupdf4llm error: {e}")
