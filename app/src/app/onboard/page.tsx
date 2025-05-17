@@ -45,8 +45,8 @@ export default function ArxivForm() {
       return false;
     }
 
-    if (domains.length === 0) {
-      setErrorMessage("Please select at least one area of interest.");
+    if (domains.length < 2) {
+      setErrorMessage("Please select at least two areas of interest.");
       setIsDialogOpen(true);
       return false;
     }
