@@ -19,7 +19,7 @@ export function KeyTermsSection({ terms, fetchAugmenters }: KeyTermsSectionProps
         {terms.map((term, index) => (
           <Badge
             key={`${term}-${index}`}
-            className="cursor-pointer hover:bg-primary/90"
+            className="cursor-pointer hover:bg-foreground"
             onClick={() => fetchAugmenters(term)}
           >
             {term}

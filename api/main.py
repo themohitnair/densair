@@ -1,4 +1,4 @@
-from config import LOG_CONFIG, API_KEY
+from config import LOG_CONFIG, API_KEY, OLD_ARXIV_ID_PATTERN, NEW_ARXIV_ID_PATTERN
 
 from services.acquire import ArxivPDF
 from services.extract import Extractor
@@ -7,9 +7,9 @@ from services.vector import VecService
 from services.feed import Feed
 
 import io
+import re
 import time
 import asyncio
-import random
 from typing import List, Optional, Dict, Any
 from functools import lru_cache
 from slowapi import Limiter
@@ -129,7 +129,7 @@ async def track_requests(request: Request, call_next):
             del active_requests[request_id]
 
 
-@app.get("/arxiv/{arxiv_id}")
+@app.get("/arxiv/{arxiv_id:path}")
 @limiter.limit("10/minute")
 async def process_pdf(
     request: Request,
@@ -138,10 +138,21 @@ async def process_pdf(
 ):
     """Process a PDF and return summaries of its content"""
     start_time = time.time()
-    arxiv_id = arxiv_id.strip().lower()
+    arxiv_id = arxiv_id.lstrip("/").strip().lower()
 
-    if not arxiv_id or len(arxiv_id) < 6:
-        raise HTTPException(status_code=400, detail="Invalid arXiv ID format")
+    # Enhanced validation
+    if not arxiv_id:
+        raise HTTPException(status_code=400, detail="ArXiv ID cannot be empty")
+
+    # Check against regex patterns
+    if not (
+        re.match(OLD_ARXIV_ID_PATTERN, arxiv_id)
+        or re.match(NEW_ARXIV_ID_PATTERN, arxiv_id)
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid arXiv ID format. Expected format like '1501.00001' or 'math/0211159'",
+        )
 
     try:
         async with ArxivPDF(arxiv_id) as pdf:

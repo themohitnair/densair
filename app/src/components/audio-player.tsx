@@ -103,7 +103,7 @@ export function AudioPlayer({ src, title = "Audio Summary" }: AudioPlayerProps) 
   if (!src) return null
 
   return (
-    <div className="bg-card border rounded-lg p-4 shadow-sm">
+    <div className="bg-background rounded-lg p-4 shadow-sm">
       <audio ref={audioRef} src={src} className="hidden" />
       
       <h3 className="text-lg font-medium mb-3">{title}</h3>

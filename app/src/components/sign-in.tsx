@@ -4,12 +4,14 @@ import React from "react";
 import { signIn } from "next-auth/react";
 import { FaGoogle, FaGithub } from "react-icons/fa";
 import { Button } from "./ui/button";
+import { cn } from "@/lib/utils";
 
 interface SignInProps {
   provider: string;
+  className?: string;
 }
 
-export default function SignIn({ provider }: SignInProps) {
+export default function SignIn({ provider, className }: SignInProps) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
@@ -28,11 +30,17 @@ export default function SignIn({ provider }: SignInProps) {
     ) : null;
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="w-full">
       <Button
         type="submit"
+        variant="default"
         aria-label={`Sign in with ${provider}`}
-        className="w-full bg-black text-white py-2 px-4 flex items-center justify-center"
+        className={cn(
+          "w-full flex items-center justify-center",
+          provider === "github" && "border-gray-300 dark:border-gray-600",
+          provider === "google" && "border-gray-300 dark:border-gray-600",
+          className
+        )}
       >
         {icon}
         <span>

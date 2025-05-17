@@ -9,17 +9,21 @@ export async function GET(
 ) {
   const { arxivId } = await params
 
-  // 1) Validate arXiv ID
-  if (!/^\d{4}\.\d{4,5}(v\d+)?$/.test(arxivId)) {
+  const decodedArxivId = decodeURIComponent(arxivId)
+
+
+  const NEW_FORMAT_REGEX = /^\d{4}\.\d{4,5}(v\d+)?$/
+  const OLD_FORMAT_REGEX = /^[a-z\-]+(\.[A-Z]{2})?\/\d{7}(v\d+)?$/
+  
+  if (!NEW_FORMAT_REGEX.test(decodedArxivId) && !OLD_FORMAT_REGEX.test(decodedArxivId)) {
     return NextResponse.json(
-      { error: 'Invalid arXiv ID format' },
+      { error: 'Invalid arXiv ID format. Expected format like "1501.00001" or "math/0211159"' },
       { status: 400 }
     )
   }
-
   try {
     const feedUrl = `http://export.arxiv.org/api/query?id_list=${encodeURIComponent(
-      arxivId
+      decodedArxivId
     )}`
     const atomRes = await fetch(feedUrl)
     if (!atomRes.ok) {

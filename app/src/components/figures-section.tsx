@@ -10,7 +10,7 @@ interface FiguresSectionProps {
 
 export function FiguresSection({ figures }: FiguresSectionProps) {
   return (
-    <div className="bg-card rounded-lg p-4">
+    <div className="bg-background rounded-lg p-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Figures and Tables</h2>
         <CopyButton

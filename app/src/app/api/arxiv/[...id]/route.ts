@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string[] } }
 ) {
+  // Await params before accessing its properties
   const { id } = await params;
+  
+  // Join the id segments with slashes to reconstruct the original arXiv ID
+  const arxivId = id.join('/');
 
   const API_URL = process.env.API_URL;
   const API_KEY = process.env.API_KEY;
@@ -17,7 +21,7 @@ export async function GET(
   }
 
   try {
-    const response = await fetch(`${API_URL}/arxiv/${id}`, {
+    const response = await fetch(`${API_URL}/arxiv/${arxivId}`, {
       headers: { 'x-api-key': API_KEY }
     });
     

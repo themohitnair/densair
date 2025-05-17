@@ -41,7 +41,7 @@ export function AudioSummarySection({
       )}
 
       {audioUrl && (
-        <div className="bg-card rounded-lg p-4">
+        <div className="bg-background rounded-lg p-4">
           <AudioPlayer src={audioUrl} title={audioTitle} />
         </div>
       )}

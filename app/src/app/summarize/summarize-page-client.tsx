@@ -45,9 +45,10 @@ export default function SummarizePageClient() {
     setMetadata(null)
 
     try {
-      const sumRes = await fetch(`/api/arxiv/${arxivId}`)
-      if (!sumRes.ok) throw new Error(sumRes.statusText)
-      const sumData = (await sumRes.json()) as Summaries
+      const encodedId = arxivId.split('/').map(part => encodeURIComponent(part)).join('/');
+      const sumRes = await fetch(`/api/arxiv/${encodedId}`)
+      if (!sumRes.ok) throw new Error(sumRes.statusText);
+      const sumData = (await sumRes.json()) as Summaries;
 
       setSummaries(sumData)
       setContext(sumData.overall_summary.context)

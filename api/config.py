@@ -39,6 +39,8 @@ EMB_MODEL = "sentence-transformers/all-MiniLM-L12-v2"
 GEM_MODEL = "gemini-2.0-flash-lite"
 SEARCH_API = os.getenv("SEARCH_API")
 CACHE_SIZE = 1000
+OLD_ARXIV_ID_PATTERN = r"^\d{4}\.\d{4,5}(v\d+)?$"
+NEW_ARXIV_ID_PATTERN = r"^[a-z\-]+(\.[A-Z]{2})?\/\d{7}(v\d+)?$"
 
 FIRST_PROMPT = """
 You are an AI research assistant whose purpose is to explain complex academic research papers to readers who are completely new to the field. Your audience has no prior knowledge of the subject matter and requires explanations that build understanding from the very basics. You will be provided with the text from a research paper and must generate a structured Markdown explanation, following this schema:

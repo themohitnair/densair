@@ -1,6 +1,6 @@
 import httpx
 import random
-from typing import List
+from typing import List, Optional
 import logging.config
 
 from models import SearchResult, ArxivDomains
@@ -72,7 +72,7 @@ class Feed:
                 valid_interests,
                 k=min(len(valid_interests), random.randint(2, len(valid_interests))),
             )
-            interest_results = await self._search_seed(
+            interest_results = await self._search_by_categories(
                 categories=[ArxivDomains(interest) for interest in selected_interests],
                 categories_match_all=False,
                 limit=interest_count,
@@ -96,7 +96,7 @@ class Feed:
                 ),
             )
 
-            exploration_results = await self._search_seed(
+            exploration_results = await self._search_by_categories(
                 categories=[ArxivDomains(domain) for domain in selected_exploration],
                 categories_match_all=False,
                 limit=exploration_count,
@@ -109,11 +109,120 @@ class Feed:
 
         return results[:total_items]
 
+    async def similar_to_title(self, title: str, top_k: int = 5) -> List[SearchResult]:
+        """
+        Get papers similar to the provided title.
+
+        Args:
+            title: The title to find similar papers for
+            top_k: Maximum number of similar papers to return
+
+        Returns:
+            List of SearchResult objects representing similar papers
+        """
+        if not self.client:
+            raise RuntimeError(
+                "HTTP client not initialized. Use 'async with' context manager."
+            )
+
+        self.logger.debug(f"Finding papers similar to title: '{title}'")
+
+        try:
+            response = await self.client.get(
+                "/search", params={"title": title, "limit": top_k}
+            )
+            response.raise_for_status()
+
+            data = response.json()
+            results = [SearchResult(**item) for item in data]
+
+            self.logger.debug(f"Found {len(results)} papers similar to '{title}'")
+            return results
+        except httpx.HTTPStatusError as e:
+            self.logger.error(
+                f"HTTP error during similar search: {e.response.status_code} - {e.response.text}"
+            )
+            raise
+        except Exception as e:
+            self.logger.error(f"Error during similar search: {str(e)}")
+            raise
+
+    async def search_papers_request(
+        self,
+        query: Optional[str] = None,
+        categories: Optional[List[str]] = None,
+        categories_match_all: bool = False,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
+        limit: int = 10,
+    ) -> List[SearchResult]:
+        """
+        Search papers by query and/or categories.
+
+        Args:
+            query: Optional search query string
+            categories: Optional list of category strings
+            categories_match_all: If True, match all categories (AND), otherwise match any (OR)
+            date_from: Optional start date for filtering
+            date_to: Optional end date for filtering
+            limit: Maximum number of results to return
+
+        Returns:
+            List of SearchResult objects matching the search criteria
+        """
+        if not self.client:
+            raise RuntimeError(
+                "HTTP client not initialized. Use 'async with' context manager."
+            )
+
+        self.logger.debug(
+            f"Searching papers with query: {query}, categories: {categories}"
+        )
+
+        params = {}
+
+        if query:
+            params["query"] = query
+
+        if categories:
+            valid_categories = [cat for cat in categories if cat in self.all_domains]
+            if valid_categories:
+                params["categories"] = valid_categories
+                params["match_all"] = "true" if categories_match_all else "false"
+
+        if date_from:
+            params["date_from"] = date_from
+
+        if date_to:
+            params["date_to"] = date_to
+
+        params["limit"] = limit
+
+        try:
+            response = await self.client.get("/search", params=params)
+            response.raise_for_status()
+
+            data = response.json()
+            results = [SearchResult(**item) for item in data]
+
+            self.logger.debug(
+                f"Retrieved {len(results)} papers matching search criteria"
+            )
+            return results
+        except httpx.HTTPStatusError as e:
+            self.logger.error(
+                f"HTTP error during search: {e.response.status_code} - {e.response.text}"
+            )
+            raise
+        except Exception as e:
+            self.logger.error(f"Error during search: {str(e)}")
+            raise
+
     async def close(self):
         await self.client.aclose()
         self.logger.debug("HTTP client closed.")
 
-    async def _search_seed(
+    async def _search_by_categories(
         self, categories: List[ArxivDomains], categories_match_all: bool, limit: int
     ) -> List[SearchResult]:
         """
@@ -161,3 +270,34 @@ class Feed:
         except Exception as e:
             self.logger.error(f"Error during search: {str(e)}")
             raise
+
+    async def _search_seed(
+        self,
+        categories: Optional[List[ArxivDomains]] = None,
+        categories_match_all: bool = False,
+        limit: int = 10,
+        query: Optional[str] = None,
+    ) -> List[SearchResult]:
+        """
+        Backward-compatible search method that supports both category-based and query-based searches.
+
+        Args:
+            categories: Optional list of ArxivDomains categories
+            categories_match_all: If True, match all categories (AND), otherwise match any (OR)
+            limit: Maximum number of results to return
+            query: Optional search query string
+
+        Returns:
+            List of SearchResult objects
+        """
+        if query is not None:
+            return await self.search_papers_request(query=query, limit=limit)
+        elif categories is not None:
+            return await self._search_by_categories(
+                categories=categories,
+                categories_match_all=categories_match_all,
+                limit=limit,
+            )
+        else:
+            self.logger.error("Neither query nor categories provided for search")
+            return []

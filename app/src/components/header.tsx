@@ -14,11 +14,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes"; // Add this import
+import { Moon, Sun } from "lucide-react"; // Add this import
 
 export function Header() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { theme, setTheme } = useTheme(); // Add this hook
   const hiddenRoutes = ["/auth", "/onboard"];
   if (hiddenRoutes.includes(pathname)) return null;
 
@@ -47,6 +50,21 @@ export function Header() {
 
         <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 
                         w-full sm:w-auto justify-center sm:justify-end">
+          {/* Theme Toggle Button - Added here */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="rounded-full"
+          >
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+            <span className="sr-only">Toggle theme</span>
+          </Button>
+
           {status === "authenticated" ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

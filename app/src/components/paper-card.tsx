@@ -59,13 +59,19 @@ export function PaperCard({ paper }: PaperCardProps) {
   };
 
   return (
-    <Card className="w-full mb-4 hover:shadow-md transition-shadow duration-200">
+    <Card className="w-full mb-4 hover:shadow-md border-none transition-shadow duration-200">
       <CardContent>
         <div className="mb-4">
           <h3 className="font-semibold text-xl mb-2">
             {/* Safely render title with LaTeX */}
             {title ? (
-              <AutoLaTeX options={latexOptions}>{title}</AutoLaTeX>
+              <AutoLaTeX 
+                options={{
+                  ...latexOptions,
+                  trust: true,
+                  strict: false
+                }}
+              >{title}</AutoLaTeX>
             ) : (
               paper_id // Fallback to paper_id if no title
             )}

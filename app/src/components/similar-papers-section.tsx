@@ -46,7 +46,7 @@ export function SimilarPapersSection({ title, limit = 5 }: SimilarPapersSectionP
   };
 
   return (
-    <div className="border rounded-lg p-6 bg-card">
+    <div className="border-none rounded-lg p-6 bg-background">
       <h2 className="text-xl font-semibold mb-4">Similar Papers</h2>
       
       {!isExpanded && !loading && (

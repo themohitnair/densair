@@ -1,180 +1,105 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-
-import { ARXIV_DOMAIN_NAMES, convertAbbreviationsToNames, convertNamesToAbbreviations } from "@/constants/arxiv";
-
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LoadingSpinner } from "@/components/loading-spinner";
+import { Edit, LogOut, Settings, User } from "lucide-react";
+import { signOut } from "next-auth/react";
+import Link from "next/link";
 
-const arxivDomains = ARXIV_DOMAIN_NAMES
+interface UserProfile {
+  name: string;
+  email: string;
+  image?: string;
+  joinedDate: string;
+  interests: string[];
+}
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
-  
-  const [domains, setDomains] = useState<string[]>([]);
-  const [userType, setUserType] = useState<string>("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [dialogTitle, setDialogTitle] = useState("Notice");
-  const [dialogMessage, setDialogMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState("profile");
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Get user initials for the avatar fallback
-  const getInitials = () => {
-    if (!session?.user?.name) return "U";
-    return session.user.name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2);
-  };
-  
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
   useEffect(() => {
-    const fetchPreferences = async () => {
-      if (status === "loading") return;
-      
-      if (status === "unauthenticated") {
-        router.push("/auth");
-        return;
-      }
-      
-      try {
-        const res = await fetch("/api/preferences");
-        
-        if (res.ok) {
-          const data = await res.json();
-          setUserType(data.userType || "");
-
-          let domainAbbreviations: string[] = []
-          
-          if (typeof data.domains === "string") {
-            domainAbbreviations = JSON.parse(data.domains)
-          } else {
-            domainAbbreviations = data.domains || []
-          }
-
-          const domainNames = convertAbbreviationsToNames(domainAbbreviations)
-          setDomains(domainNames)
-        } else {
-          showDialog("Error", "Failed to load your preferences");
-        }
-      } catch (error) {
-        console.error("Error loading preferences:", error);
-        showDialog("Error", "An error occurred while loading your preferences");
-      } finally {
+    // Simulate loading user profile data
+    if (status === "authenticated") {
+      // Fetch user profile data here
+      setTimeout(() => {
+        setUserProfile({
+          name: session?.user?.name || "User",
+          email: session?.user?.email || "user@example.com",
+          image: session?.user?.image || "",
+          joinedDate: "May 2025",
+          interests: ["Computer Science", "Mathematics", "Physics"],
+        });
         setIsLoading(false);
-      }
-    };
-    
-    fetchPreferences();
-  }, [status, router]);
-  
-  const toggleDomain = (domain: string) => {
-    setDomains((prev) =>
-      prev.includes(domain)
-        ? prev.filter((d) => d !== domain)
-        : [...prev, domain]
-    );
+      }, 1000);
+    } else if (status === "unauthenticated") {
+      // Redirect to login if not authenticated
+      window.location.href = "/login";
+    }
+  }, [status, session]);
+
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: "/" });
   };
 
-  const showDialog = (title: string, message: string) => {
-    setDialogTitle(title);
-    setDialogMessage(message);
-    setIsDialogOpen(true);
-  };
-
-  const validateForm = () => {
-    if (!userType) {
-      showDialog("Form Incomplete", "Please select your role");
-      return false;
-    }
-
-    if (domains.length === 0) {
-      showDialog("Form Incomplete", "Please select at least one area of interest");
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-    
-    setIsSubmitting(true);
-  
-    try {
-      const domainAbbreviations = convertNamesToAbbreviations(domains)
-
-      const res = await fetch("/api/preferences", {
-        method: "PUT",
-        body: JSON.stringify({ userType, domains: domainAbbreviations }),
-        headers: { "Content-Type": "application/json" },
-      });
-    
-      if (res.ok) {
-        showDialog("Success", "Your preferences have been updated successfully!");
-      } else {
-        const errorData = await res.json();
-        showDialog("Error", errorData.error || "Failed to update preferences");
-      }
-    } catch (error) {
-      console.error("Error updating preferences:", error);
-      showDialog("Error", "An error occurred. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (isLoading) {
+  if (status === "loading" || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <p className="text-lg">Loading your profile...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="text-center">
+          <LoadingSpinner size="lg" />
+          <p className="mt-4 text-lg text-foreground">Loading your profile...</p>
+        </div>
       </div>
     );
   }
 
+  const getInitials = (name: string): string => {
+    return name
+      .split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase();
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Profile Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-6">
+      <div className="bg-card border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={session?.user?.image || ""} alt={session?.user?.name || "User"} />
-              <AvatarFallback className="text-xl bg-primary text-primary-foreground">{getInitials()}</AvatarFallback>
+              <AvatarImage src={userProfile?.image} alt={userProfile?.name || "User"} />
+              <AvatarFallback className="text-xl">
+                {userProfile?.name ? getInitials(userProfile.name) : "U"}
+              </AvatarFallback>
             </Avatar>
-            <div className="mt-4 md:mt-0 text-center md:text-left">
-              <h1 className="text-2xl font-bold">{session?.user?.name}</h1>
-              <p className="text-gray-500">{session?.user?.email}</p>
-              <p className="mt-1 text-sm text-gray-500">
-                {userType ? `${userType}` : "Complete your profile below"}
+            <div className="text-center sm:text-left flex-1">
+              <h1 className="text-2xl font-bold text-foreground">
+                {userProfile?.name || "User"}
+              </h1>
+              <p className="text-muted-foreground">{userProfile?.email || "No email"}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Member since {userProfile?.joinedDate || "N/A"}
               </p>
+            </div>
+            <div className="flex gap-2 mt-4 sm:mt-0">
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/profile/edit">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </Link>
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </div>
@@ -182,97 +107,103 @@ export default function ProfilePage() {
 
       {/* Profile Content */}
       <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium">Profile Settings</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Update your preferences to customize the research papers we show you.
-            </p>
-          </div>
+        <Tabs
+          defaultValue="profile"
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
+          <TabsList className="mb-8">
+            <TabsTrigger value="profile">
+              <User className="h-4 w-4 mr-2" />
+              Profile
+            </TabsTrigger>
+            <TabsTrigger value="settings">
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </TabsTrigger>
+          </TabsList>
 
-          <form onSubmit={handleSubmit} className="p-6">
-            <div className="space-y-6">
-              {/* User Type Section */}
-              <div>
-                <h3 className="text-md font-medium mb-4">Your Role</h3>
-                <div className="max-w-md">
-                  <Label htmlFor="userType" className="block text-sm font-medium mb-2">
-                    I am a
-                  </Label>
-                  <Select value={userType} onValueChange={(value) => setUserType(value)}>
-                    <SelectTrigger id="userType" className="w-full">
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Student">Student</SelectItem>
-                      <SelectItem value="Researcher">Researcher</SelectItem>
-                      <SelectItem value="Educator">Educator</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+          <TabsContent value="profile" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>About Me</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-foreground">
+                  This is your profile information. You can edit this in the
+                  profile settings.
+                </p>
+              </CardContent>
+            </Card>
 
-              <Separator />
-
-              {/* Domains Section */}
-              <div>
-                <h3 className="text-md font-medium mb-4">Research Interests</h3>
-                <Label className="block text-sm font-medium mb-3">
-                  I am interested in
-                </Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {arxivDomains.map((domain) => (
-                    <div key={domain} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={domain}
-                        value={domain}
-                        checked={domains.includes(domain)}
-                        onChange={() => toggleDomain(domain)}
-                        className="h-4 w-4"
-                      />
-                      <Label htmlFor={domain} className="cursor-pointer text-sm">
-                        {domain}
-                      </Label>
+            <Card>
+              <CardHeader>
+                <CardTitle>Research Interests</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {userProfile?.interests?.map((interest: string) => (
+                    <div
+                      key={interest}
+                      className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-sm"
+                    >
+                      {interest}
                     </div>
                   ))}
                 </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              <div className="pt-4">
-                <Button 
-                  type="submit" 
-                  className="w-full sm:w-auto" 
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
-            </div>
-          </form>
-        </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Your recent activity will appear here.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium text-foreground">
+                    Account Preferences
+                  </h3>
+                  <p className="text-muted-foreground">
+                    Manage your account settings and preferences.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium text-foreground">
+                    Notification Settings
+                  </h3>
+                  <p className="text-muted-foreground">
+                    Configure how you receive notifications.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium text-foreground">
+                    Privacy Settings
+                  </h3>
+                  <p className="text-muted-foreground">
+                    Control your privacy and data settings.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
-
-      {/* Dialog for errors and success messages */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{dialogTitle}</DialogTitle>
-            <DialogDescription>{dialogMessage}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => {
-              setIsDialogOpen(false);
-              // If it was a success message, you might want to redirect
-              if (dialogTitle === "Success") {
-                router.push("/feed");
-              }
-            }}>
-              OK
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
