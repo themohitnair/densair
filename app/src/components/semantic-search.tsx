@@ -25,65 +25,59 @@ export function SemanticSearch({ onSearch, isLoading, initialFilters }: Semantic
       setFilters(initialFilters);
     }
   }, [initialFilters]);
+  
+  // Set initial query from URL if present
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlQuery = urlParams.get('query');
+    if (urlQuery) {
+      setQuery(urlQuery);
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      onSearch(query, filters);
+    // Call onSearch even with empty query to clear results if needed
+    onSearch(query, filters);
+  };
+
+  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newQuery = e.target.value;
+    setQuery(newQuery);
+    
+    // If query is cleared, update URL to remove query parameter
+    if (!newQuery.trim()) {
+      const urlParams = new URLSearchParams(window.location.search);
+      urlParams.delete("query");
+      window.history.replaceState(
+        {}, 
+        '', 
+        `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`
+      );
     }
   };
 
   const handleFiltersChange = (newFilters: SearchFiltersType) => {
     setFilters(newFilters);
-    
-    // Update URL to reflect filter changes without triggering a search
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Preserve query and other non-filter params
-    const query = urlParams.get('query');
-    const interests = urlParams.getAll('interests');
-    
-    // Clear existing filter params
-    urlParams.delete("categories");
-    urlParams.delete("categories_match_all");
-    urlParams.delete("date_from");
-    urlParams.delete("date_to");
-    
-    // Re-add query if it exists
-    if (query) {
-      urlParams.set('query', query);
-    }
-    
-    // Re-add interests if they exist
-    interests.forEach(interest => {
-      urlParams.append('interests', interest);
-    });
-    
-    // Add new filter params
-    newFilters.categories.forEach(cat => urlParams.append("categories", cat));
-    if (newFilters.categoriesMatchAll) urlParams.set("categories_match_all", "true");
-    if (newFilters.dateFrom) urlParams.set("date_from", newFilters.dateFrom);
-    if (newFilters.dateTo) urlParams.set("date_to", newFilters.dateTo);
-    
-    // Update URL without navigation
-    window.history.replaceState(
-      {}, 
-      '', 
-      `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`
-    );
   };
 
   return (
     <div className="w-full max-w-2xl mx-auto">
       <form onSubmit={handleSubmit} className="flex w-full gap-2 mb-4">
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for papers by topic, concept, or question..."
-          className="flex-1"
-          disabled={isLoading}
-        />
-        <Button type="submit" disabled={isLoading || !query.trim()}>
+        <div className="flex-1 flex flex-col">
+          <Input
+            value={query}
+            onChange={handleQueryChange}
+            placeholder="Search for papers by topic, concept, or question..."
+            className="w-full"
+            disabled={isLoading}
+            maxLength={500}
+          />
+          <div className="text-xs text-muted-foreground text-right mt-1">
+            {query.length}/500 characters
+          </div>
+        </div>
+        <Button type="submit" disabled={isLoading}>
           <Search className="h-4 w-4 mr-2" />
           Search
         </Button>
