@@ -22,28 +22,48 @@ import logging
 import logging.config
 import asyncio
 from cachetools import LRUCache
+import threading
 
 logging.config.dictConfig(LOG_CONFIG)
 
 
-class VecService:
+class SingletonMeta(type):
+    _instances = {}
+    _lock = threading.Lock()
+
+    def __call__(cls, *args, **kwargs):
+        key = (cls, args[0] if args else None)
+
+        with cls._lock:
+            if key not in cls._instances:
+                cls._instances[key] = super().__call__(*args, **kwargs)
+        return cls._instances[key]
+
+
+class VecService(metaclass=SingletonMeta):
     def __init__(self, arxiv_id: str):
-        self.arxiv_id = arxiv_id.lower()
-        self.model = TOKENIZING_MODEL
-        self.embedding_model = EMB_MODEL
-        self.embedding_client = TextEmbedding(self.embedding_model)
-        self.client = AsyncGroq(api_key=GROQ_KEY)
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model)
-        self.chunker = RecursiveChunker(
-            chunk_size=256,
-            rules=RecursiveRules(),
-            tokenizer_or_token_counter=self.tokenizer,
-            return_type="texts",
-        )
-        self.index = Index(url=UPSTASH_URL, token=UPSTASH_TOKEN)
-        self.logger = logging.getLogger(__name__)
-        self.embedding_cache = LRUCache(maxsize=CACHE_SIZE)
-        self.semaphore = asyncio.Semaphore(5)
+        # Check if this instance has been initialized before
+        if not hasattr(self, "initialized") or self.arxiv_id != arxiv_id.lower():
+            self.arxiv_id = arxiv_id.lower()
+            self.model = TOKENIZING_MODEL
+            self.embedding_model = EMB_MODEL
+            self.embedding_client = TextEmbedding(self.embedding_model)
+            self.client = AsyncGroq(api_key=GROQ_KEY)
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model)
+            self.chunker = RecursiveChunker(
+                chunk_size=256,
+                rules=RecursiveRules(),
+                tokenizer_or_token_counter=self.tokenizer,
+                return_type="texts",
+            )
+            self.index = Index(url=UPSTASH_URL, token=UPSTASH_TOKEN)
+            self.logger = logging.getLogger(__name__)
+            self.embedding_cache = LRUCache(maxsize=CACHE_SIZE)
+            self.semaphore = asyncio.Semaphore(5)
+            self.initialized = True
+        else:
+            # Just update the arxiv_id if it's different
+            self.arxiv_id = arxiv_id.lower()
 
     async def _embed_text(self, text: str) -> Optional[List[float]]:
         """Embed a single text with caching and error handling"""
@@ -68,7 +88,7 @@ class VecService:
                     None, lambda: self.embedding_client.encode([text])[0]
                 )
 
-                embedding = await asyncio.wait_for(embedding_future, timeout=10.0)
+                embedding = await asyncio.wait_for(embedding_future, timeout=60.0)
 
                 if embedding is None or len(embedding) == 0:
                     self.logger.error("Empty embedding vector received")
@@ -203,6 +223,8 @@ class VecService:
             context = ""
             for chunk in chunks:
                 context += chunk + "\n\n"
+
+            context = context[:4096]
 
             self.logger.info("Context assembled.")
             self.logger.info(f"Query: {query} | Context Length: {len(context)}")
