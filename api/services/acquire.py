@@ -31,7 +31,7 @@ class ArxivPDF:
     async def is_valid_pdf_url(self) -> bool:
         try:
             session = await self._get_session()
-            async with session.head(self.arxiv_url) as response:
+            async with session.head(self.arxiv_url, allow_redirects=True) as response:
                 if response.status != 200:
                     self.logger.error(f"URL returned status code {response.status}")
                     return False
@@ -44,7 +44,7 @@ class ArxivPDF:
             session = await self._get_session()
 
             async with session.get(
-                self.arxiv_url, headers={"Range": "bytes=0-4"}
+                self.arxiv_url, headers={"Range": "bytes=0-4"}, allow_redirects=True
             ) as response:
                 first_bytes = await response.content.read()
                 if first_bytes != b"%PDF-":
@@ -70,7 +70,7 @@ class ArxivPDF:
 
         try:
             session = await self._get_session()
-            async with session.get(self.arxiv_url) as response:
+            async with session.get(self.arxiv_url, allow_redirects=True) as response:
                 pdf_bytes = await response.read()
 
             doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")

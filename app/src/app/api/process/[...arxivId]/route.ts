@@ -1,13 +1,14 @@
 import { NextResponse, NextRequest } from 'next/server';
 
-
 export const maxDuration = 60;
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ arxivId: string }> }
+  { params }: { params: Promise<{ arxivId: string[] }> }
 ) {
+  // Join the array parts back with slashes
   const { arxivId } = await params;
+  const id = arxivId.join('/');
   
   const API_URL = process.env.API_URL;
   const API_KEY = process.env.API_KEY;
@@ -24,7 +25,7 @@ export async function POST(
     console.log(`Processing paper ${arxivId}...`);
     
     const response = await fetch(
-      `${API_URL}/process/${arxivId}`,
+      `${API_URL}/process/${encodeURIComponent(id)}`,
       { 
         method: 'POST',
         headers: {

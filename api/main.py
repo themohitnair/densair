@@ -239,7 +239,7 @@ async def get_term_augmenters(
         )
 
 
-@app.post("/process/{arxiv_id}")
+@app.post("/process/{arxiv_id:path}")
 async def process_paper(
     arxiv_id: str = Path(..., min_length=6, description="arXiv ID of the paper"),
     _apikey: str = Depends(verify_api_key),
@@ -270,7 +270,7 @@ async def process_paper(
     }
 
 
-@app.post("/query/{arxiv_id}")
+@app.post("/query/{arxiv_id:path}")
 async def query_paper(
     arxiv_id: str = Path(..., min_length=6, description="arXiv paper ID"),
     payload: QueryRequest = Body(...),

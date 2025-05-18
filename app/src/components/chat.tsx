@@ -1,11 +1,9 @@
-// components/chat.tsx
 "use client"
 
 import { useState, useRef, useEffect } from "react"
 import { SendIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-// ← import your skeleton
 import { LoadingAnimation } from "./loading-animation"
 import MarkdownRenderer from "./markdown-renderer"
 
@@ -48,6 +46,7 @@ export function Chat({ arxivId, stickToBottom = false }: ChatProps) {
     setIsWaiting(true)
 
     try {
+      // Use the path directly without encoding, as Next.js will handle it
       const res = await fetch(`/api/query/${arxivId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -59,7 +58,7 @@ export function Chat({ arxivId, stickToBottom = false }: ChatProps) {
       const { answer } = await res.json()
       const assistantMessage: Message = {
         id: Date.now().toString(),
-        content: answer ?? "Sorry, I couldn’t find an answer.",
+        content: answer ?? "Sorry, I couldn't find an answer.",
         role: "assistant",
         timestamp: new Date(),
       }

@@ -22,7 +22,7 @@ export function CitationsSection({ citations }: CitationsSectionProps) {
         <CopyButton content={formattedCitationsText} label="Copy All" />
       </CardHeader>
       <CardContent>
-        <ul className="list-disc pl-5 space-y-2">
+        <ul className="list-disc pl-3 space-y-2">
           {citations.map((citation, index) => (
             <li key={index} className="text-md">
               {citation}

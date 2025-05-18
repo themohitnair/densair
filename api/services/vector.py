@@ -156,7 +156,7 @@ class VecService(metaclass=SingletonMeta):
             async with ArxivPDF(self.arxiv_id) as pdf:
                 pdf_md = await pdf.fetch_arxiv_pdf_markdown()
 
-            if not pdf_md:
+            if pdf_md is None:
                 self.logger.error("No markdown extracted from PDF")
                 return []
 
@@ -187,7 +187,7 @@ class VecService(metaclass=SingletonMeta):
                 self.logger.warning("No vectors to insert")
                 return
 
-            self.index.upsert(vectors=vecs, namespace=self.arxiv_id)
+            self.index.upsert(vectors=vecs, namespace=self.arxiv_id.replace("/", "_"))
             self.logger.info(
                 f"Successfully inserted {len(vecs)} vectors into namespace '{self.arxiv_id}'"
             )
@@ -209,7 +209,7 @@ class VecService(metaclass=SingletonMeta):
             results = self.index.query(
                 vector=query_vec,
                 top_k=top_k,
-                namespace=self.arxiv_id,
+                namespace=self.arxiv_id.replace("/", "_"),
                 include_metadata=True,
             )
             self.logger.info(f"Query completed. Found {len(results)} results.")
@@ -250,7 +250,7 @@ class VecService(metaclass=SingletonMeta):
     async def vectors_exist(self) -> bool:
         try:
             result = self.index.fetch(
-                ids=[f"{self.arxiv_id}_0"], namespace=self.arxiv_id
+                ids=[f"{self.arxiv_id}_0"], namespace=self.arxiv_id.replace("/", "_")
             )
             self.logger.info(f"Fetch result for {self.arxiv_id}: {result}")
 

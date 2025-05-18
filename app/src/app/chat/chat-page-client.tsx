@@ -32,6 +32,7 @@ export default function ChatPageClient() {
     setError(null)
     setLoading(true)
     try {
+      // Use the path directly without encoding, as Next.js will handle it
       const res = await fetch(`/api/process/${id}`, {
         method: "POST",
         cache: "no-store",
@@ -79,7 +80,7 @@ export default function ChatPageClient() {
             <Input
               value={inputId}
               onChange={(e) => setInputId(e.target.value)}
-              placeholder="e.g. 1706.03762"
+              placeholder="e.g. 1706.03762 or hep-ph/9905577"
               className="w-24 sm:w-32 md:w-48"
             />
             <Button type="submit" disabled={loading}>
