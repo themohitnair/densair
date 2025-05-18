@@ -8,6 +8,7 @@ from config import (
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
     GEM_MODEL,
+    CITATIONS_PROMPT,
 )
 
 from models import (
@@ -16,6 +17,7 @@ from models import (
     OverallSummary,
     EndResponse,
     InVoiceSummary,
+    Citations,
 )
 
 from google import genai
@@ -99,12 +101,23 @@ class Extractor:
         except Exception as e:
             self.logger.error(f"Error in generating overall summary: {e}")
 
+    async def generate_citations(self):
+        try:
+            response = await self._generate_content(CITATIONS_PROMPT, Citations)
+            self.logger.info("Citations received from Gemini.")
+
+            return response
+
+        except Exception as e:
+            self.logger.error(f"Error generating citations: {str(e)}")
+
     async def get_all_summaries(self) -> EndResponse:
         try:
             tasks = [
                 self.overall_explanation(),
                 self.sectionwise_explanations(),
                 self.figure_summaries(),
+                self.generate_citations(),
             ]
 
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -114,7 +127,9 @@ class Extractor:
                     self.logger.error(f"Task {i} failed: {result}")
                     raise result
 
-            overall_summary, sectionwise_explanations, figure_summaries = results
+            overall_summary, sectionwise_explanations, figure_summaries, citations = (
+                results
+            )
 
             self.logger.info("Combined all summaries into JSON.")
 
@@ -122,6 +137,7 @@ class Extractor:
                 overall_summary=json.loads(overall_summary),
                 terms_and_summaries=json.loads(sectionwise_explanations),
                 table_and_figure_summaries=json.loads(figure_summaries),
+                citations=json.loads(citations),
             )
         except Exception as e:
             self.logger.error(f"Error in combining summaries: {e}")

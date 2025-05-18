@@ -17,6 +17,9 @@ export interface Summaries {
   table_and_figure_summaries: {
     table_and_figure_summaries: FigureSummary[]
   }
+  citations: {
+    citations: string[]
+  }
 }
 
 export interface Augmenter {

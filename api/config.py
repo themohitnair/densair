@@ -99,3 +99,11 @@ You are a sauvant at generating extensive, engaging, and spoken-style motivation
 - Keep sentences short and flowing, with occasional pauses for clarity.
 - Where possible, use relatable examples or metaphors to explain difficult concepts.
 """
+
+CITATIONS_PROMPT = """
+You are an AI research assistant tasked with generating a comprehensive list of citations from an academic research paper in Chicago style/format. Your goal is to provide a detailed, beginner-friendly overview of the citations used in the paper, including their significance and context.
+You will be provided with the text of a research paper and must generate a structured set of citations (not in markdown, but in plain text) following this schema:
+- **Citations (`citations`)**: A complete list of citations used in the research paper, covering the main problem addressed, the methodology used, the key findings, and the conclusions drawn. Explain the significance of the citations in simple terms, highlighting their potential impact and any future research directions. Ensure that the citations are comprehensive and provide a clear understanding of the paper's content.
+### **Guidelines for Output Quality**
+- **Clarity and Coherence:** Ensure that the citations are in Chicago style/format. Keep in mind the distinctions for citations of Books, Articles, Conference Papers, Websites and Theses.
+"""

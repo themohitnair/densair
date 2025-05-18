@@ -12,6 +12,7 @@ import { AugmenterSection } from "@/components/augmenter-section"
 import { SummarySection } from "@/components/summary-section"
 import { FiguresSection } from "@/components/figures-section"
 import { SimilarPapersSection } from "@/components/similar-papers-section"
+import { CitationsSection } from "../../components/citations-section"
 import { Button } from "@/components/ui/button"
 import { MessageSquare } from "lucide-react"
 import type { Summaries, AugmenterGroup, PaperMetadata } from "@/types/paper-types"
@@ -222,6 +223,12 @@ export default function SummarizePageClient() {
                       summaries.table_and_figure_summaries
                         .table_and_figure_summaries
                     }
+                  />
+                )}
+
+                {summaries.citations.citations.length > 0 && (
+                  <CitationsSection
+                    citations={summaries.citations.citations}
                   />
                 )}
 

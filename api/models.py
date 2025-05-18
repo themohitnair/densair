@@ -48,12 +48,6 @@ class OverallSummary(BaseModel):
     context: str
 
 
-class EndResponse(BaseModel):
-    overall_summary: OverallSummary
-    terms_and_summaries: TermsAndSummaries
-    table_and_figure_summaries: FigureSummaries
-
-
 class TermAugmenter(BaseModel):
     title: str
     url: str
@@ -92,6 +86,17 @@ class SearchResult(BaseModel):
     metadata: PaperMetadata
 
 
+class Citations(BaseModel):
+    citations: List[str]
+
+
 class QueryRequest(BaseModel):
     query: str
     top_k: int = 5
+
+
+class EndResponse(BaseModel):
+    overall_summary: OverallSummary
+    terms_and_summaries: TermsAndSummaries
+    table_and_figure_summaries: FigureSummaries
+    citations: Citations
