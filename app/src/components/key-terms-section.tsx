@@ -1,18 +1,23 @@
-"use client"
+"use client";
 
-import { Badge } from "@/components/ui/badge"
-import { CopyButton } from "@/components/copy-button"
+import { Badge } from "@/components/ui/badge";
+import { CopyButton } from "@/components/copy-button";
 
 interface KeyTermsSectionProps {
-  terms: string[]
-  fetchAugmenters: (term: string) => Promise<void>
+  terms: string[];
+  fetchAugmenters: (term: string) => Promise<void>;
 }
 
-export function KeyTermsSection({ terms, fetchAugmenters }: KeyTermsSectionProps) {
+export function KeyTermsSection({
+  terms,
+  fetchAugmenters,
+}: KeyTermsSectionProps) {
   return (
     <div className="bg-card rounded-lg p-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Key Terms</h2>
+        <h2 className="text-2xl font-bold">
+          Key Terms (Click to know more about them)
+        </h2>
         <CopyButton content={terms.join(", ")} label="Copy All" />
       </div>
       <div className="flex flex-wrap gap-2">
@@ -27,5 +32,5 @@ export function KeyTermsSection({ terms, fetchAugmenters }: KeyTermsSectionProps
         ))}
       </div>
     </div>
-  )
+  );
 }
