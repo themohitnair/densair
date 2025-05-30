@@ -1,9 +1,9 @@
-import React, { Suspense } from "react"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import { LoadingAnimation } from "@/components/loading-animation"
-import SummarizePageClient from "./summarize-page-client"
+import React, { Suspense } from "react";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { LoadingAnimation } from "@/components/loading-animation";
+import SummarizePageClient from "./summarize-page-client";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 export default function SummarizePage() {
   return (
@@ -14,7 +14,7 @@ export default function SummarizePage() {
         </Suspense>
       </div>
     </TooltipProvider>
-  )
+  );
 }
 
 function LoadingFallback() {
@@ -23,5 +23,5 @@ function LoadingFallback() {
       <LoadingAnimation />
       <p className="mt-4 text-muted-foreground">Loading page…</p>
     </div>
-  )
+  );
 }

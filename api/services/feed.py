@@ -1,10 +1,10 @@
-import httpx
+import logging.config
 import random
 from typing import List, Optional
-import logging.config
 
-from models import SearchResult, ArxivDomains
-from config import SEARCH_API, LOG_CONFIG
+import httpx
+from config import LOG_CONFIG, SEARCH_API
+from models import ArxivDomains, SearchResult
 
 logging.config.dictConfig(LOG_CONFIG)
 
@@ -129,7 +129,7 @@ class Feed:
 
         try:
             response = await self.client.get(
-                "/search", params={"title": title, "limit": top_k}
+                "/search", params={"query": title, "limit": top_k}
             )
             response.raise_for_status()
 

@@ -7,11 +7,13 @@ import type { SearchResult } from "@/types/paper-types";
 
 interface SimilarPapersSectionProps {
   title: string;
+  context?: string | null;
   limit?: number;
 }
 
 export function SimilarPapersSection({
   title,
+  context,
   limit = 5,
 }: SimilarPapersSectionProps) {
   const [similarPapers, setSimilarPapers] = useState<SearchResult[]>([]);
@@ -26,8 +28,11 @@ export function SimilarPapersSection({
 
     setLoading(true);
     try {
+      const enhancedTitle = context
+        ? `Context: ${context}. ${title} My name is Mohit Nair, this is football stock prediction`
+        : title;
       const queryParams = new URLSearchParams({
-        title: title,
+        title: enhancedTitle,
         limit: limit.toString(),
       });
 

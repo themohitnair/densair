@@ -1,135 +1,142 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect, useCallback } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import { SearchBar } from "@/components/search-bar"
-import { LoadingAnimation } from "@/components/loading-animation"
-import { AudioSummarySection } from "@/components/audio-summary-section"
-import { KeyTermsSection } from "@/components/key-terms-section"
-import { AugmenterSection } from "@/components/augmenter-section"
-import { SummarySection } from "@/components/summary-section"
-import { FiguresSection } from "@/components/figures-section"
-import { SimilarPapersSection } from "@/components/similar-papers-section"
-import { CitationsSection } from "../../components/citations-section"
-import { Button } from "@/components/ui/button"
-import { MessageSquare } from "lucide-react"
-import type { Summaries, AugmenterGroup, PaperMetadata } from "@/types/paper-types"
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { SearchBar } from "@/components/search-bar";
+import { LoadingAnimation } from "@/components/loading-animation";
+import { AudioSummarySection } from "@/components/audio-summary-section";
+import { KeyTermsSection } from "@/components/key-terms-section";
+import { AugmenterSection } from "@/components/augmenter-section";
+import { SummarySection } from "@/components/summary-section";
+import { FiguresSection } from "@/components/figures-section";
+import { SimilarPapersSection } from "@/components/similar-papers-section";
+import { CitationsSection } from "../../components/citations-section";
+import { Button } from "@/components/ui/button";
+import { MessageSquare } from "lucide-react";
+import type {
+  Summaries,
+  AugmenterGroup,
+  PaperMetadata,
+} from "@/types/paper-types";
 
-type TitleOnly = Pick<PaperMetadata, "title">
+type TitleOnly = Pick<PaperMetadata, "title">;
 
 export default function SummarizePageClient() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [arxivId, setArxivId] = useState<string>("")
-  const [metadata, setMetadata] = useState<TitleOnly | null>(null)
-  const [summaries, setSummaries] = useState<Summaries | null>(null)
-  const [loading, setLoading] = useState<boolean>(false)
-  const [augmenterGroups, setAugmenterGroups] = useState<AugmenterGroup[]>([])
-  const [context, setContext] = useState<string | null>(null)
-  const [audioLoading, setAudioLoading] = useState<boolean>(false)
-  const [audioUrl, setAudioUrl] = useState<string | null>(null)
-  const [audioTitle, setAudioTitle] = useState<string>("Audio Summary")
-  const augmentersRef = useRef<HTMLDivElement>(null)
+  const [arxivId, setArxivId] = useState<string>("");
+  const [metadata, setMetadata] = useState<TitleOnly | null>(null);
+  const [summaries, setSummaries] = useState<Summaries | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [augmenterGroups, setAugmenterGroups] = useState<AugmenterGroup[]>([]);
+  const [context, setContext] = useState<string | null>(null);
+  const [audioLoading, setAudioLoading] = useState<boolean>(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioTitle, setAudioTitle] = useState<string>("Audio Summary");
+  const augmentersRef = useRef<HTMLDivElement>(null);
 
   const handleSearch = useCallback(async () => {
     if (!arxivId.trim()) {
-      toast.error("Please enter an ArXiv ID")
-      return
+      toast.error("Please enter an ArXiv ID");
+      return;
     }
-    router.push(`/summarize/?id=${encodeURIComponent(arxivId)}`)
+    router.push(`/summarize/?id=${encodeURIComponent(arxivId)}`);
 
-    setLoading(true)
-    setSummaries(null)
-    setMetadata(null)
+    setLoading(true);
+    setSummaries(null);
+    setMetadata(null);
 
     try {
-      const encodedId = arxivId.split('/').map(part => encodeURIComponent(part)).join('/');
-      const sumRes = await fetch(`/api/arxiv/${encodedId}`)
+      const encodedId = arxivId
+        .split("/")
+        .map((part) => encodeURIComponent(part))
+        .join("/");
+      const sumRes = await fetch(`/api/arxiv/${encodedId}`);
       if (!sumRes.ok) throw new Error(sumRes.statusText);
       const sumData = (await sumRes.json()) as Summaries;
 
-      setSummaries(sumData)
-      setContext(sumData.overall_summary.context)
+      setSummaries(sumData);
+      setContext(sumData.overall_summary.context);
 
-      const idRes = await fetch(`/api/id/${encodeURIComponent(arxivId)}`)
-      if (!idRes.ok) throw new Error(idRes.statusText)
-      const { title } = (await idRes.json()) as { title: string }
-      setMetadata({ title })
+      const idRes = await fetch(`/api/id/${encodeURIComponent(arxivId)}`);
+      if (!idRes.ok) throw new Error(idRes.statusText);
+      const { title } = (await idRes.json()) as { title: string };
+      setMetadata({ title });
     } catch (err) {
-      console.error("Error fetching paper data:", err)
-      toast.error(err instanceof Error ? err.message : "Failed to fetch paper")
+      console.error("Error fetching paper data:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to fetch paper");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [arxivId, router])
+  }, [arxivId, router]);
 
   useEffect(() => {
-    const id = searchParams.get("id")
+    const id = searchParams.get("id");
     if (id) {
-      setArxivId(id)
-      handleSearch()
+      setArxivId(id);
+      handleSearch();
     }
-  }, [searchParams, handleSearch])
+  }, [searchParams, handleSearch]);
 
   useEffect(() => {
-    if (!audioUrl) return
+    if (!audioUrl) return;
     return () => {
-      URL.revokeObjectURL(audioUrl)
-    }
-  }, [audioUrl])
+      URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
 
   const fetchAugmenters = async (term: string) => {
     if (!context) {
-      toast.error("Context is missing. Try fetching the paper summary first.")
-      return
+      toast.error("Context is missing. Try fetching the paper summary first.");
+      return;
     }
     if (augmenterGroups.some((g) => g.term === term)) {
-      augmentersRef.current?.scrollIntoView({ behavior: "smooth" })
-      return
+      augmentersRef.current?.scrollIntoView({ behavior: "smooth" });
+      return;
     }
     try {
       const res = await fetch(
-        `/api/term/${term}?context=${encodeURIComponent(context)}`
-      )
-      if (!res.ok) throw new Error(res.statusText)
-      const data = await res.json()
-      setAugmenterGroups((prev) => [...prev, { term, augmenters: data }])
+        `/api/term/${term}?context=${encodeURIComponent(context)}`,
+      );
+      if (!res.ok) throw new Error(res.statusText);
+      const data = await res.json();
+      setAugmenterGroups((prev) => [...prev, { term, augmenters: data }]);
       setTimeout(
         () => augmentersRef.current?.scrollIntoView({ behavior: "smooth" }),
-        100
-      )
+        100,
+      );
     } catch (err) {
-      console.error("Error fetching augmenters:", err)
-      toast.error("Failed to fetch additional information for the term")
+      console.error("Error fetching augmenters:", err);
+      toast.error("Failed to fetch additional information for the term");
     }
-  }
+  };
 
   const generateAudioSummary = async () => {
     if (!arxivId.trim()) {
-      toast.error("No paper loaded")
-      return
+      toast.error("No paper loaded");
+      return;
     }
-    setAudioLoading(true)
-    setAudioUrl(null)
+    setAudioLoading(true);
+    setAudioUrl(null);
     try {
-      const res = await fetch(`/api/audiosumm/${arxivId}`)
-      if (!res.ok) throw new Error(res.statusText)
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      setAudioUrl(url)
-      setAudioTitle(res.headers.get("x-title") || "Audio Summary")
+      const res = await fetch(`/api/audiosumm/${arxivId}`);
+      if (!res.ok) throw new Error(res.statusText);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setAudioUrl(url);
+      setAudioTitle(res.headers.get("x-title") || "Audio Summary");
     } catch (err) {
-      console.error("Error generating audio summary:", err)
+      console.error("Error generating audio summary:", err);
       toast.error(
-        err instanceof Error ? err.message : "Failed to generate audio summary"
-      )
+        err instanceof Error ? err.message : "Failed to generate audio summary",
+      );
     } finally {
-      setAudioLoading(false)
+      setAudioLoading(false);
     }
-  }
+  };
 
   return (
     <TooltipProvider>
@@ -216,8 +223,8 @@ export default function SummarizePageClient() {
                   content={summaries.terms_and_summaries.conc_explanation}
                 />
 
-                {summaries.table_and_figure_summaries
-                  .table_and_figure_summaries.length > 0 && (
+                {summaries.table_and_figure_summaries.table_and_figure_summaries
+                  .length > 0 && (
                   <FiguresSection
                     figures={
                       summaries.table_and_figure_summaries
@@ -227,13 +234,12 @@ export default function SummarizePageClient() {
                 )}
 
                 {summaries.citations.citations.length > 0 && (
-                  <CitationsSection
-                    citations={summaries.citations.citations}
-                  />
+                  <CitationsSection citations={summaries.citations.citations} />
                 )}
 
                 <SimilarPapersSection
                   title={metadata.title}
+                  context={context}
                   limit={5}
                 />
               </div>
@@ -242,5 +248,5 @@ export default function SummarizePageClient() {
         </main>
       </div>
     </TooltipProvider>
-  )
+  );
 }
