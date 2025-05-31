@@ -11,6 +11,7 @@ import { Save, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { ARXIV_DOMAIN_NAMES, convertAbbreviationsToNames, convertNamesToAbbreviations } from "@/constants/arxiv";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectTrigger,
@@ -259,12 +260,10 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {arxivDomains.map((domain) => (
                     <div key={domain} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         id={domain}
-                        value={domain}
                         checked={domains.includes(domain)}
-                        onChange={() => toggleDomain(domain)}
+                        onCheckedChange={() => toggleDomain(domain)}
                         className="h-4 w-4"
                       />
                       <Label htmlFor={domain} className="cursor-pointer text-sm">
