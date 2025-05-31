@@ -32,6 +32,7 @@ export default function SummarizePageClient() {
   const [audioLoading, setAudioLoading] = useState<boolean>(false)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [audioTitle, setAudioTitle] = useState<string>("Audio Summary")
+  const [augmenterLoading, setAugmenterLoading] = useState<boolean>(false)
   const augmentersRef = useRef<HTMLDivElement>(null)
 
   // Handle manual search (when user clicks search button)
@@ -100,6 +101,9 @@ export default function SummarizePageClient() {
       augmentersRef.current?.scrollIntoView({ behavior: "smooth" })
       return
     }
+    
+    setAugmenterLoading(true)
+    
     try {
       const res = await fetch(`/api/term/${term}?context=${encodeURIComponent(context)}`)
       if (!res.ok) throw new Error(res.statusText)
@@ -109,8 +113,12 @@ export default function SummarizePageClient() {
     } catch (err) {
       console.error("Error fetching augmenters:", err)
       toast.error("Failed to fetch additional information for the term")
+    } finally {
+      setAugmenterLoading(false)
     }
   }
+
+
 
   const generateAudioSummary = async () => {
     if (!arxivId.trim()) {
@@ -182,8 +190,13 @@ export default function SummarizePageClient() {
                 <KeyTermsSection terms={summaries.terms_and_summaries.key_terms} fetchAugmenters={fetchAugmenters} />
 
                 <div ref={augmentersRef}>
-                  <AugmenterSection augmenterGroups={augmenterGroups} />
+                  <AugmenterSection 
+                    augmenterGroups={augmenterGroups} 
+                    loading={augmenterLoading}
+                  />
                 </div>
+
+
 
                 <SummarySection title="Overall Summary" content={summaries.overall_summary.summary} />
                 <SummarySection title="Abstract" content={summaries.terms_and_summaries.abs_explanation} />

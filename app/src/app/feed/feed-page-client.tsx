@@ -11,13 +11,6 @@ import { convertAbbreviationsToNames } from "@/constants/arxiv"
 import type { SearchFilters } from "@/components/search-filters"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-function joinWithAnd(arr: string[]): string {
-  if (arr.length === 0) return ""
-  if (arr.length === 1) return arr[0]
-  if (arr.length === 2) return arr[0] + " and " + arr[1]
-  return arr.slice(0, -1).join(", ") + " and " + arr[arr.length - 1]
-}
-
 export default function FeedPageClient() {
   const searchParams = useSearchParams()
 
@@ -46,7 +39,6 @@ export default function FeedPageClient() {
 
   // Convert abbreviations like "cs" → "Computer Science"
   const displayInterests = useMemo(() => convertAbbreviationsToNames(userInterests), [userInterests])
-  const formattedInterests = useMemo(() => joinWithAnd(displayInterests), [displayInterests])
 
   const headerText = useMemo(() => {
     return activeTab === "feed" ? "Your Research Feed" : "xivvy Search Engine"
@@ -54,9 +46,27 @@ export default function FeedPageClient() {
 
   const subHeaderText = useMemo(() => {
     return activeTab === "feed"
-      ? `Discover papers based on your interests (${formattedInterests})`
+      ? "Discover papers based on your interests"
       : "Search for papers by topic, concept, or semantic meaning"
-  }, [activeTab, formattedInterests])
+  }, [activeTab])
+
+  // Add this component after the subheader
+  const InterestTags = ({ interests }: { interests: string[] }) => {
+    if (interests.length === 0) return null
+    
+    return (
+      <div className="flex flex-wrap gap-2 mb-6">
+        {interests.map((interest) => (
+          <span
+            key={interest}
+            className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary border border-primary/20"
+          >
+            {interest}
+          </span>
+        ))}
+      </div>
+    )
+  }
 
   // Fetch feed with retry/backoff
   const fetchFeed = useCallback(async (interests: string[], retry = 0, max = 3): Promise<void> => {
@@ -227,7 +237,8 @@ export default function FeedPageClient() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto mb-8">
           <h1 className="text-4xl font-bold mb-4">{headerText}</h1>
-          <p className="text-lg text-muted-foreground mb-6">{subHeaderText}</p>
+          <p className="text-lg text-muted-foreground mb-4">{subHeaderText}</p>
+          {activeTab === "feed" && <InterestTags interests={displayInterests} />}
 
           {/* Tabs with responsive design */}
           <div className="relative rounded-sm overflow-x-auto">

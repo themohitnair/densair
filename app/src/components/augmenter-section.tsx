@@ -1,13 +1,15 @@
 "use client"
 
 import type { AugmenterGroup, Augmenter } from "../types/paper-types"
+import { LoadingAnimation } from "./loading-animation"
 
 interface AugmenterSectionProps {
   augmenterGroups: AugmenterGroup[]
+  loading?: boolean
 }
 
-export function AugmenterSection({ augmenterGroups }: AugmenterSectionProps) {
-  if (augmenterGroups.length === 0) {
+export function AugmenterSection({ augmenterGroups, loading = false }: AugmenterSectionProps) {
+  if (augmenterGroups.length === 0 && !loading) {
     return null
   }
 
@@ -32,6 +34,12 @@ export function AugmenterSection({ augmenterGroups }: AugmenterSectionProps) {
           </ul>
         </div>
       ))}
+      
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-8">
+          <LoadingAnimation />
+        </div>
+      )}
     </>
   )
 }

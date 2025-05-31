@@ -21,7 +21,6 @@ function LoadingFallback() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center py-12">
       <LoadingAnimation />
-      <p className="mt-4 text-muted-foreground">Loading page…</p>
     </div>
   );
 }

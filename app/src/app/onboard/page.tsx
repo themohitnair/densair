@@ -5,6 +5,7 @@ import { ARXIV_DOMAIN_NAMES, convertNamesToAbbreviations } from "@/constants/arx
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectTrigger,
@@ -123,13 +124,11 @@ export default function ArxivForm() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {arxivDomains.map((domain) => (
                   <div key={domain} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       id={domain}
-                      value={domain}
                       checked={domains.includes(domain)}
-                      onChange={() => toggleDomain(domain)}
-                      className="h-4 w-4 accent-primary"
+                      onCheckedChange={() => toggleDomain(domain)}
+                      className="h-4 w-4"
                     />
                     <Label htmlFor={domain} className="cursor-pointer text-sm text-foreground">
                       {domain}
@@ -146,7 +145,6 @@ export default function ArxivForm() {
         </CardContent>
       </Card>
 
-      {/* Error Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>

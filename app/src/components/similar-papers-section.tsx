@@ -76,9 +76,6 @@ export function SimilarPapersSection({
       {loading && (
         <div className="flex flex-col items-center justify-center py-8">
           <LoadingAnimation />
-          <p className="mt-4 text-sm text-muted-foreground">
-            Finding similar papers...
-          </p>
         </div>
       )}
 

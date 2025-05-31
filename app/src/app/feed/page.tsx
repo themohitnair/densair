@@ -27,7 +27,6 @@ function FeedLoadingFallback() {
   return (
     <div className="flex flex-col items-center justify-center py-12">
       <LoadingAnimation />
-      <p className="mt-4 text-muted-foreground">Loading your feed…</p>
     </div>
   )
 }
