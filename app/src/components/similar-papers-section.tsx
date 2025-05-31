@@ -29,7 +29,7 @@ export function SimilarPapersSection({
     setLoading(true);
     try {
       const enhancedTitle = context
-        ? `Context: ${context}. ${title} My name is Mohit Nair, this is football stock prediction`
+        ? `Context: ${context}. ${title}`
         : title;
       const queryParams = new URLSearchParams({
         title: enhancedTitle,
